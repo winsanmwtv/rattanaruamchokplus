@@ -3,19 +3,32 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: bg-base-100;
+  --foreground: bg-base-content;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: bg-base-100;
+    --foreground: bg-base-content;
   }
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'TH SarabunPSK', 'Mitr', 'Sarabun', Arial, Helvetica, sans-serif;
 }
+
+/* globals.css */
+
+/* Apply the Mitr font for Thai text */
+html[lang="th"] {
+  font-family: 'Mitr', sans-serif;
+}
+
+/* Apply default font for other text */
+body[lang="th"] {
+  font-family: 'Mitr', sans-serif;
+}
+
