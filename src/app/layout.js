@@ -4,18 +4,18 @@ import "./globals.css";
 import Navbar from "./components/navbar";
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+    variable: "--font-geist-sans",
+    subsets: ["latin"],
 });
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+    variable: "--font-geist-mono",
+    subsets: ["latin"],
 });
 
 export const metadata = {
-  title: "RattanaRuamchok+",
-  description: "Made by winsanmwtv",
+    title: "RattanaRuamchok+",
+    description: "Made by winsanmwtv",
 };
 
 // Import Mitr font with specified weight
@@ -26,16 +26,18 @@ const mitr = Mitr({
 });
 
 export default function RootLayout({ children }) {
-  return (
-      <html lang="th">
-      <body className={`${geistSans.variable} ${geistMono.variable} ${mitr.variable} antialiased`}>
-      <div className="flex flex-col min-h-screen">
-          <Navbar/>
-          <div className="flex-grow pt-0"> {/* Ensure no overlap between navbar and content */}
-              <main>{children}</main>
-          </div>
-      </div>
-      </body>
-      </html>
-  );
+    return (
+        <html lang="th">
+        <body
+            className={`${geistSans.variable} ${geistMono.variable} ${mitr.variable} antialiased`}
+        >
+        <div className="flex flex-col min-h-screen">
+            <Navbar /> {/* Navbar applied globally */}
+            <div className="flex-grow pt-0">
+                <main>{children}</main> {/* Page content */}
+            </div>
+        </div>
+        </body>
+        </html>
+    );
 }
