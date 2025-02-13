@@ -2,7 +2,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Mitr } from "next/font/google"; // Import Mitr font
 import "./globals.css";
 import NavBar from "./components/NavBar";
-import Footer from "./components/Footer";
 
 const geistSans = Geist({
     variable: "--font-geist-sans",
@@ -22,7 +21,7 @@ const mitr = Mitr({
 });
 
 export const metadata = {
-    title: "RattanaRuamchok+",
+    title: "ร้าน รัตนารวมโชค",
     description: "Made by winsanmwtv",
 };
 
@@ -34,7 +33,6 @@ export default function RootLayout({ children }) {
             <NavBar />
             {/* This ensures the page content expands to push the footer down */}
             <main className="flex-grow flex flex-col">{children}</main>
-            <Footer className="mt-auto" /> {/* This forces the footer to stick to the bottom */}
         </div>
         </body>
         </html>

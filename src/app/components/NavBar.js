@@ -101,7 +101,15 @@ const NavBar = () => {
     };
 
     const handleLock = () => {
-        alert("ล็อคการใช้งาน ยังไม่พร้อมใช้งาน");
+        handleLogout();
+    };
+
+    const handleOpenShift = () => {
+        router.push("/employee/open-shift");
+    };
+
+    const handleCloseShift = () => {
+        router.push("/employee/close-shift");
     };
 
     const toggleMenu = () => {
@@ -138,7 +146,7 @@ const NavBar = () => {
             }}
         >
             <div style={{ display: "flex", flexDirection: "column", textAlign: "left" }}>
-                <div>ร้านรัตนารวมโชค</div>
+                <div>ร้านรัตนารวมโชค | Dev1.0.3</div>
                 <div style={{ fontSize: "14px", color: "#ededed" }}>{currentDateTime}</div>
             </div>
 
@@ -188,11 +196,11 @@ const NavBar = () => {
                             <button onClick={handleLogout} style={dropdownButtonStyle}>
                                 ออกจากระบบ
                             </button>
-                            <button onClick={() => alert("ปิดกะประจำวัน ยังไม่พร้อมใช้งาน")} style={dropdownButtonStyle}>
-                                ปิดกะประจำวัน
+                            <button onClick={handleOpenShift} style={dropdownButtonStyle}>
+                                เปิดกะเริ่มทำงาน
                             </button>
-                            <button onClick={() => alert("เปลี่ยนรหัสพนักงาน ยังไม่พร้อมใช้งาน")} style={dropdownButtonStyle}>
-                                เปลี่ยนรหัสพนักงาน
+                            <button onClick={handleCloseShift} style={dropdownButtonStyle}>
+                                ปิดกะประจำวัน/จบงาน
                             </button>
                         </div>
                     )}

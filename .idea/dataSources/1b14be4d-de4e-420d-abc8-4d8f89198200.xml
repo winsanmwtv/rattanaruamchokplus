@@ -1216,7 +1216,7 @@ customer_673770_RRCP|schema||customer_673770_RRCP||UPDATE|G</Grants>
     </collation>
     <schema id="508" parent="1" name="customer_673770_RRCP">
       <Current>1</Current>
-      <LastIntrospectionLocalTimestamp>2025-02-13.06:53:43</LastIntrospectionLocalTimestamp>
+      <LastIntrospectionLocalTimestamp>2025-02-13.12:55:30</LastIntrospectionLocalTimestamp>
       <CollationName>latin1_swedish_ci</CollationName>
     </schema>
     <schema id="509" parent="1" name="information_schema">
@@ -1251,517 +1251,574 @@ customer_673770_RRCP|schema||customer_673770_RRCP||UPDATE|G</Grants>
       <Engine>InnoDB</Engine>
       <CollationName>utf8mb4_unicode_ci</CollationName>
     </table>
-    <table id="518" parent="508" name="Transaction">
+    <table id="518" parent="508" name="Shift">
       <Engine>InnoDB</Engine>
       <CollationName>utf8mb4_unicode_ci</CollationName>
     </table>
-    <table id="519" parent="508" name="Transaction_Item">
+    <table id="519" parent="508" name="Transaction">
       <Engine>InnoDB</Engine>
       <CollationName>utf8mb4_unicode_ci</CollationName>
     </table>
-    <column id="520" parent="511" name="branch_id">
+    <table id="520" parent="508" name="Transaction_Item">
+      <Engine>InnoDB</Engine>
+      <CollationName>utf8mb4_unicode_ci</CollationName>
+    </table>
+    <column id="521" parent="511" name="branch_id">
       <NotNull>1</NotNull>
       <Position>1</Position>
       <StoredType>int(11)|0s</StoredType>
     </column>
-    <column id="521" parent="511" name="branch_name">
+    <column id="522" parent="511" name="branch_name">
       <NotNull>1</NotNull>
       <Position>2</Position>
       <StoredType>text|0s</StoredType>
     </column>
-    <column id="522" parent="511" name="address">
+    <column id="523" parent="511" name="address">
       <NotNull>1</NotNull>
       <Position>3</Position>
       <StoredType>text|0s</StoredType>
     </column>
-    <column id="523" parent="511" name="tel_no">
+    <column id="524" parent="511" name="tel_no">
       <NotNull>1</NotNull>
       <Position>4</Position>
       <StoredType>text|0s</StoredType>
     </column>
-    <column id="524" parent="511" name="line_id">
+    <column id="525" parent="511" name="line_id">
       <Position>5</Position>
       <StoredType>text|0s</StoredType>
     </column>
-    <column id="525" parent="511" name="geolocation">
+    <column id="526" parent="511" name="geolocation">
       <NotNull>1</NotNull>
       <Position>6</Position>
       <StoredType>text|0s</StoredType>
     </column>
-    <column id="526" parent="511" name="radius">
+    <column id="527" parent="511" name="radius">
       <NotNull>1</NotNull>
       <Position>7</Position>
       <StoredType>int(11)|0s</StoredType>
     </column>
-    <index id="527" parent="511" name="PRIMARY">
+    <index id="528" parent="511" name="PRIMARY">
       <ColNames>branch_id</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <key id="528" parent="511" name="PRIMARY">
+    <key id="529" parent="511" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
-    <column id="529" parent="512" name="report_id">
+    <column id="530" parent="512" name="report_id">
       <Comment>Report ID</Comment>
       <NotNull>1</NotNull>
       <Position>1</Position>
       <StoredType>int(11)|0s</StoredType>
     </column>
-    <column id="530" parent="512" name="date">
+    <column id="531" parent="512" name="date">
       <Comment>Report Date</Comment>
       <DefaultExpression>current_timestamp()</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>2</Position>
       <StoredType>date|0s</StoredType>
     </column>
-    <column id="531" parent="512" name="total_sold_price">
+    <column id="532" parent="512" name="total_sold_price">
       <Comment>Total Sales</Comment>
       <DefaultExpression>0</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>3</Position>
       <StoredType>double|0s</StoredType>
     </column>
-    <column id="532" parent="512" name="total_void_bill">
+    <column id="533" parent="512" name="total_void_bill">
       <Comment>Total Voided Bills</Comment>
       <DefaultExpression>0</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>4</Position>
       <StoredType>int(11)|0s</StoredType>
     </column>
-    <column id="533" parent="512" name="branch">
+    <column id="534" parent="512" name="branch">
       <NotNull>1</NotNull>
       <Position>5</Position>
       <StoredType>int(11)|0s</StoredType>
     </column>
-    <index id="534" parent="512" name="PRIMARY">
+    <index id="535" parent="512" name="PRIMARY">
       <ColNames>report_id
 branch</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <key id="535" parent="512" name="PRIMARY">
+    <key id="536" parent="512" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
-    <column id="536" parent="513" name="report_id">
+    <column id="537" parent="513" name="report_id">
       <Comment>Report ID</Comment>
       <NotNull>1</NotNull>
       <Position>1</Position>
       <StoredType>int(11)|0s</StoredType>
     </column>
-    <column id="537" parent="513" name="prod_id">
+    <column id="538" parent="513" name="prod_id">
       <Comment>Product ID</Comment>
       <NotNull>1</NotNull>
       <Position>2</Position>
       <StoredType>int(11)|0s</StoredType>
     </column>
-    <column id="538" parent="513" name="quantity">
+    <column id="539" parent="513" name="quantity">
       <Comment>Quantity Sold</Comment>
       <NotNull>1</NotNull>
       <Position>3</Position>
       <StoredType>int(11)|0s</StoredType>
     </column>
-    <column id="539" parent="513" name="price_each">
+    <column id="540" parent="513" name="price_each">
       <Comment>Unit Price</Comment>
       <DefaultExpression>0</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>4</Position>
       <StoredType>double|0s</StoredType>
     </column>
-    <column id="540" parent="513" name="price_of_purchase">
+    <column id="541" parent="513" name="price_of_purchase">
       <Comment>Total Price</Comment>
       <DefaultExpression>0</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>5</Position>
       <StoredType>double|0s</StoredType>
     </column>
-    <column id="541" parent="513" name="branch">
+    <column id="542" parent="513" name="branch">
       <NotNull>1</NotNull>
       <Position>6</Position>
       <StoredType>int(11)|0s</StoredType>
     </column>
-    <foreign-key id="542" parent="513" name="Daily_Report_Item_ibfk_1">
+    <foreign-key id="543" parent="513" name="Daily_Report_Item_ibfk_1">
       <ColNames>report_id</ColNames>
       <RefColNames>report_id</RefColNames>
       <RefTableName>Daily_Report</RefTableName>
     </foreign-key>
-    <index id="543" parent="513" name="PRIMARY">
+    <index id="544" parent="513" name="PRIMARY">
       <ColNames>report_id
 prod_id
 branch</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <key id="544" parent="513" name="PRIMARY">
+    <key id="545" parent="513" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
-    <column id="545" parent="514" name="emp_id">
+    <column id="546" parent="514" name="emp_id">
       <Comment>Employee ID and Username</Comment>
       <NotNull>1</NotNull>
       <Position>1</Position>
       <StoredType>int(11)|0s</StoredType>
     </column>
-    <column id="546" parent="514" name="password">
+    <column id="547" parent="514" name="password">
       <Comment>Password for Login</Comment>
       <NotNull>1</NotNull>
       <Position>2</Position>
       <StoredType>text|0s</StoredType>
     </column>
-    <column id="547" parent="514" name="firstname">
+    <column id="548" parent="514" name="firstname">
       <Comment>Employee First Name</Comment>
       <NotNull>1</NotNull>
       <Position>3</Position>
       <StoredType>text|0s</StoredType>
     </column>
-    <column id="548" parent="514" name="lastname">
+    <column id="549" parent="514" name="lastname">
       <Comment>Employee Last Name</Comment>
       <NotNull>1</NotNull>
       <Position>4</Position>
       <StoredType>text|0s</StoredType>
     </column>
-    <column id="549" parent="514" name="role">
+    <column id="550" parent="514" name="role">
       <Comment>Employee Rank</Comment>
       <DefaultExpression>&apos;storefront&apos;</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>5</Position>
       <StoredType>text|0s</StoredType>
     </column>
-    <column id="550" parent="514" name="tel_no">
+    <column id="551" parent="514" name="tel_no">
       <Comment>Phone Number</Comment>
       <Position>6</Position>
       <StoredType>text|0s</StoredType>
     </column>
-    <column id="551" parent="514" name="startwork">
+    <column id="552" parent="514" name="startwork">
       <Comment>Start Date</Comment>
       <DefaultExpression>current_timestamp()</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>7</Position>
       <StoredType>date|0s</StoredType>
     </column>
-    <column id="552" parent="514" name="birthdate">
+    <column id="553" parent="514" name="birthdate">
       <Comment>Birth Date</Comment>
       <NotNull>1</NotNull>
       <Position>8</Position>
       <StoredType>date|0s</StoredType>
     </column>
-    <column id="553" parent="514" name="salary">
+    <column id="554" parent="514" name="salary">
       <Comment>Salary</Comment>
       <DefaultExpression>0</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>9</Position>
       <StoredType>int(11)|0s</StoredType>
     </column>
-    <column id="554" parent="514" name="branch">
+    <column id="555" parent="514" name="branch">
       <Comment>Branch</Comment>
       <DefaultExpression>&apos;1000&apos;</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>10</Position>
       <StoredType>text|0s</StoredType>
     </column>
-    <column id="555" parent="514" name="img_path">
+    <column id="556" parent="514" name="img_path">
       <Comment>Image Path</Comment>
       <Position>11</Position>
       <StoredType>text|0s</StoredType>
     </column>
-    <index id="556" parent="514" name="PRIMARY">
+    <index id="557" parent="514" name="PRIMARY">
       <ColNames>emp_id</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <key id="557" parent="514" name="PRIMARY">
+    <key id="558" parent="514" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
-    <column id="558" parent="515" name="barcode">
+    <column id="559" parent="515" name="barcode">
       <Comment>Product Barcode</Comment>
       <NotNull>1</NotNull>
       <Position>1</Position>
-      <StoredType>int(11)|0s</StoredType>
+      <StoredType>varchar(255)|0s</StoredType>
     </column>
-    <column id="559" parent="515" name="name_th">
+    <column id="560" parent="515" name="name_th">
       <Comment>Product Name (Thai)</Comment>
       <NotNull>1</NotNull>
       <Position>2</Position>
       <StoredType>text|0s</StoredType>
     </column>
-    <column id="560" parent="515" name="name_en">
+    <column id="561" parent="515" name="name_en">
       <Comment>Product Name (English)</Comment>
       <NotNull>1</NotNull>
       <Position>3</Position>
       <StoredType>text|0s</StoredType>
     </column>
-    <column id="561" parent="515" name="price">
+    <column id="562" parent="515" name="price">
       <Comment>Price</Comment>
       <NotNull>1</NotNull>
       <Position>4</Position>
       <StoredType>double|0s</StoredType>
     </column>
-    <column id="562" parent="515" name="front_quantity">
+    <column id="563" parent="515" name="front_quantity">
       <Comment>Front Stock Quantity</Comment>
       <DefaultExpression>0</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>5</Position>
       <StoredType>int(11)|0s</StoredType>
     </column>
-    <column id="563" parent="515" name="back_quantity">
+    <column id="564" parent="515" name="back_quantity">
       <Comment>Back Stock Quantity</Comment>
       <DefaultExpression>0</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>6</Position>
       <StoredType>int(11)|0s</StoredType>
     </column>
-    <column id="564" parent="515" name="img_path">
+    <column id="565" parent="515" name="img_path">
       <Comment>Image Path</Comment>
       <Position>7</Position>
       <StoredType>text|0s</StoredType>
     </column>
-    <column id="565" parent="515" name="prod_type">
+    <column id="566" parent="515" name="prod_type">
       <Comment>Product Type</Comment>
       <Position>8</Position>
       <StoredType>text|0s</StoredType>
     </column>
-    <column id="566" parent="515" name="is_bulk">
+    <column id="567" parent="515" name="is_bulk">
       <Comment>Bulk Product</Comment>
       <DefaultExpression>0</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>9</Position>
       <StoredType>tinyint(1)|0s</StoredType>
     </column>
-    <column id="567" parent="515" name="bulk_quantity_each">
+    <column id="568" parent="515" name="bulk_quantity_each">
       <Comment>Bulk Quantity</Comment>
       <Position>10</Position>
       <StoredType>int(11)|0s</StoredType>
     </column>
-    <column id="568" parent="515" name="single_barcode">
+    <column id="569" parent="515" name="single_barcode">
       <Comment>Single Barcode Reference</Comment>
       <Position>11</Position>
       <StoredType>int(11)|0s</StoredType>
     </column>
-    <column id="569" parent="515" name="is_valid_promo">
+    <column id="570" parent="515" name="is_valid_promo">
       <Comment>Valid for Promotion</Comment>
       <NotNull>1</NotNull>
       <Position>12</Position>
       <StoredType>tinyint(1)|0s</StoredType>
     </column>
-    <column id="570" parent="515" name="branch_id">
+    <column id="571" parent="515" name="branch_id">
       <NotNull>1</NotNull>
       <Position>13</Position>
       <StoredType>int(11)|0s</StoredType>
     </column>
-    <index id="571" parent="515" name="PRIMARY">
+    <index id="572" parent="515" name="PRIMARY">
       <ColNames>barcode
 branch_id</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <key id="572" parent="515" name="PRIMARY">
+    <key id="573" parent="515" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
-    <column id="573" parent="516" name="receipt_id">
+    <column id="574" parent="516" name="receipt_id">
       <AutoIncrement>1</AutoIncrement>
       <Comment>Receipt ID</Comment>
       <NotNull>1</NotNull>
       <Position>1</Position>
       <StoredType>int(11)|0s</StoredType>
     </column>
-    <column id="574" parent="516" name="trans_id">
+    <column id="575" parent="516" name="trans_id">
       <Comment>Transaction ID</Comment>
       <NotNull>1</NotNull>
       <Position>2</Position>
       <StoredType>int(11)|0s</StoredType>
     </column>
-    <column id="575" parent="516" name="issue_date">
+    <column id="576" parent="516" name="issue_date">
       <Comment>Receipt Issue Date</Comment>
       <DefaultExpression>current_timestamp()</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>3</Position>
       <StoredType>datetime|0s</StoredType>
     </column>
-    <column id="576" parent="516" name="branch_id">
+    <column id="577" parent="516" name="branch_id">
       <Comment>Branch ID</Comment>
       <NotNull>1</NotNull>
       <Position>4</Position>
       <StoredType>int(11)|0s</StoredType>
     </column>
-    <foreign-key id="577" parent="516" name="Receipt_ibfk_1">
+    <foreign-key id="578" parent="516" name="Receipt_ibfk_1">
       <ColNames>trans_id</ColNames>
       <RefColNames>trans_id</RefColNames>
       <RefTableName>Transaction</RefTableName>
     </foreign-key>
-    <foreign-key id="578" parent="516" name="Receipt_ibfk_2">
+    <foreign-key id="579" parent="516" name="Receipt_ibfk_2">
       <ColNames>branch_id</ColNames>
       <RefColNames>branch_id</RefColNames>
       <RefTableName>Branch</RefTableName>
     </foreign-key>
-    <index id="579" parent="516" name="PRIMARY">
+    <index id="580" parent="516" name="PRIMARY">
       <ColNames>receipt_id</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <index id="580" parent="516" name="Receipt_ibfk_1">
+    <index id="581" parent="516" name="Receipt_ibfk_1">
       <ColNames>trans_id</ColNames>
       <Type>btree</Type>
     </index>
-    <index id="581" parent="516" name="Receipt_ibfk_2">
+    <index id="582" parent="516" name="Receipt_ibfk_2">
       <ColNames>branch_id</ColNames>
       <Type>btree</Type>
     </index>
-    <key id="582" parent="516" name="PRIMARY">
+    <key id="583" parent="516" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
-    <column id="583" parent="517" name="receipt_id">
+    <column id="584" parent="517" name="receipt_id">
       <Comment>Receipt ID</Comment>
       <NotNull>1</NotNull>
       <Position>1</Position>
       <StoredType>int(11)|0s</StoredType>
     </column>
-    <column id="584" parent="517" name="prod_id">
+    <column id="585" parent="517" name="prod_id">
       <Comment>Product ID</Comment>
       <NotNull>1</NotNull>
       <Position>2</Position>
       <StoredType>int(11)|0s</StoredType>
     </column>
-    <column id="585" parent="517" name="quantity">
+    <column id="586" parent="517" name="quantity">
       <Comment>Quantity</Comment>
       <NotNull>1</NotNull>
       <Position>3</Position>
       <StoredType>int(11)|0s</StoredType>
     </column>
-    <column id="586" parent="517" name="price_each">
+    <column id="587" parent="517" name="price_each">
       <Comment>Price Each</Comment>
       <NotNull>1</NotNull>
       <Position>4</Position>
       <StoredType>double|0s</StoredType>
     </column>
-    <foreign-key id="587" parent="517" name="Receipt_Item_ibfk_1">
+    <foreign-key id="588" parent="517" name="Receipt_Item_ibfk_1">
       <ColNames>receipt_id</ColNames>
       <RefColNames>receipt_id</RefColNames>
       <RefTableName>Receipt</RefTableName>
     </foreign-key>
-    <index id="588" parent="517" name="PRIMARY">
+    <index id="589" parent="517" name="PRIMARY">
       <ColNames>receipt_id
 prod_id</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <key id="589" parent="517" name="PRIMARY">
+    <key id="590" parent="517" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
-    <column id="590" parent="518" name="trans_id">
+    <column id="591" parent="518" name="date">
+      <Comment>วันที่</Comment>
+      <NotNull>1</NotNull>
+      <Position>1</Position>
+      <StoredType>date|0s</StoredType>
+    </column>
+    <column id="592" parent="518" name="employee_id">
+      <Comment>รหัสพนักงาน</Comment>
+      <NotNull>1</NotNull>
+      <Position>2</Position>
+      <StoredType>int(11)|0s</StoredType>
+    </column>
+    <column id="593" parent="518" name="total_at_start">
+      <Comment>เงินเริ่มงาน</Comment>
+      <Position>3</Position>
+      <StoredType>double|0s</StoredType>
+    </column>
+    <column id="594" parent="518" name="total_at_end">
+      <Comment>เงินจบงาน</Comment>
+      <Position>4</Position>
+      <StoredType>double|0s</StoredType>
+    </column>
+    <column id="595" parent="518" name="counted_cashier">
+      <Comment>เงินที่นับได้</Comment>
+      <Position>5</Position>
+      <StoredType>double|0s</StoredType>
+    </column>
+    <column id="596" parent="518" name="deverative">
+      <Comment>ยอดเงินหายในเครื่อง</Comment>
+      <Position>6</Position>
+      <StoredType>double|0s</StoredType>
+    </column>
+    <column id="597" parent="518" name="start_work_time">
+      <Comment>เวลาเข้างาน</Comment>
+      <Position>7</Position>
+      <StoredType>time|0s</StoredType>
+    </column>
+    <column id="598" parent="518" name="end_work_time">
+      <Comment>เวลาออกงาน</Comment>
+      <Position>8</Position>
+      <StoredType>time|0s</StoredType>
+    </column>
+    <index id="599" parent="518" name="PRIMARY">
+      <ColNames>date
+employee_id</ColNames>
+      <Type>btree</Type>
+      <Unique>1</Unique>
+    </index>
+    <key id="600" parent="518" name="PRIMARY">
+      <NameSurrogate>1</NameSurrogate>
+      <Primary>1</Primary>
+      <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
+    </key>
+    <column id="601" parent="519" name="trans_id">
       <AutoIncrement>1</AutoIncrement>
       <Comment>Transaction ID</Comment>
       <NotNull>1</NotNull>
       <Position>1</Position>
       <StoredType>int(11)|0s</StoredType>
     </column>
-    <column id="591" parent="518" name="emp_id">
+    <column id="602" parent="519" name="emp_id">
       <Comment>Employee ID</Comment>
       <NotNull>1</NotNull>
       <Position>2</Position>
       <StoredType>int(11)|0s</StoredType>
     </column>
-    <column id="592" parent="518" name="branch_id">
+    <column id="603" parent="519" name="branch_id">
       <Comment>Branch ID</Comment>
       <NotNull>1</NotNull>
       <Position>3</Position>
       <StoredType>int(11)|0s</StoredType>
     </column>
-    <column id="593" parent="518" name="date">
+    <column id="604" parent="519" name="date">
       <Comment>Transaction Date</Comment>
       <DefaultExpression>current_timestamp()</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>4</Position>
       <StoredType>datetime|0s</StoredType>
     </column>
-    <column id="594" parent="518" name="total_price">
+    <column id="605" parent="519" name="total_price">
       <Comment>Total Price</Comment>
       <NotNull>1</NotNull>
       <Position>5</Position>
       <StoredType>double|0s</StoredType>
     </column>
-    <column id="595" parent="518" name="status">
+    <column id="606" parent="519" name="status">
       <Comment>Transaction Status</Comment>
       <DefaultExpression>&apos;pending&apos;</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>6</Position>
       <StoredType>enum(&apos;pending&apos;, &apos;completed&apos;)|0e</StoredType>
     </column>
-    <foreign-key id="596" parent="518" name="Transaction_ibfk_1">
+    <foreign-key id="607" parent="519" name="Transaction_ibfk_1">
       <ColNames>emp_id</ColNames>
       <RefColNames>emp_id</RefColNames>
       <RefTableName>Employee</RefTableName>
     </foreign-key>
-    <foreign-key id="597" parent="518" name="Transaction_ibfk_2">
+    <foreign-key id="608" parent="519" name="Transaction_ibfk_2">
       <ColNames>branch_id</ColNames>
       <RefColNames>branch_id</RefColNames>
       <RefTableName>Branch</RefTableName>
     </foreign-key>
-    <index id="598" parent="518" name="PRIMARY">
+    <index id="609" parent="519" name="PRIMARY">
       <ColNames>trans_id</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <index id="599" parent="518" name="Transaction_ibfk_1">
+    <index id="610" parent="519" name="Transaction_ibfk_1">
       <ColNames>emp_id</ColNames>
       <Type>btree</Type>
     </index>
-    <index id="600" parent="518" name="Transaction_ibfk_2">
+    <index id="611" parent="519" name="Transaction_ibfk_2">
       <ColNames>branch_id</ColNames>
       <Type>btree</Type>
     </index>
-    <key id="601" parent="518" name="PRIMARY">
+    <key id="612" parent="519" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
-    <column id="602" parent="519" name="trans_id">
+    <column id="613" parent="520" name="trans_id">
       <Comment>Transaction ID</Comment>
       <NotNull>1</NotNull>
       <Position>1</Position>
       <StoredType>int(11)|0s</StoredType>
     </column>
-    <column id="603" parent="519" name="prod_id">
+    <column id="614" parent="520" name="prod_id">
       <Comment>Product ID</Comment>
       <NotNull>1</NotNull>
       <Position>2</Position>
       <StoredType>int(11)|0s</StoredType>
     </column>
-    <column id="604" parent="519" name="quantity">
+    <column id="615" parent="520" name="quantity">
       <Comment>Quantity</Comment>
       <NotNull>1</NotNull>
       <Position>3</Position>
       <StoredType>int(11)|0s</StoredType>
     </column>
-    <column id="605" parent="519" name="price_each">
+    <column id="616" parent="520" name="price_each">
       <Comment>Price Each</Comment>
       <NotNull>1</NotNull>
       <Position>4</Position>
       <StoredType>double|0s</StoredType>
     </column>
-    <foreign-key id="606" parent="519" name="Transaction_Item_ibfk_1">
+    <foreign-key id="617" parent="520" name="Transaction_Item_ibfk_1">
       <ColNames>trans_id</ColNames>
       <RefColNames>trans_id</RefColNames>
       <RefTableName>Transaction</RefTableName>
     </foreign-key>
-    <index id="607" parent="519" name="PRIMARY">
+    <index id="618" parent="520" name="PRIMARY">
       <ColNames>trans_id
 prod_id</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <key id="608" parent="519" name="PRIMARY">
+    <key id="619" parent="520" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
