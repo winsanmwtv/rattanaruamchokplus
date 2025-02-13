@@ -1,7 +1,8 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import { Mitr } from "next/font/google"; // Import Mitr font
 import "./globals.css";
-import Navbar from "./components/navbar";
+import NavBar from "./components/NavBar";
+import Footer from "./components/Footer";
 
 const geistSans = Geist({
     variable: "--font-geist-sans",
@@ -13,17 +14,17 @@ const geistMono = Geist_Mono({
     subsets: ["latin"],
 });
 
-export const metadata = {
-    title: "RattanaRuamchok+",
-    description: "Made by winsanmwtv",
-};
-
 // Import Mitr font with specified weight
 const mitr = Mitr({
     variable: "--font-mitr",
     subsets: ["latin", "thai"],
-    weight: "400", // You can change this to another weight like "300", "500", etc. if needed
+    weight: "400", // You can change this to another weight like "300", "500", etc.
 });
+
+export const metadata = {
+    title: "RattanaRuamchok+",
+    description: "Made by winsanmwtv",
+};
 
 export default function RootLayout({ children }) {
     return (
@@ -32,10 +33,9 @@ export default function RootLayout({ children }) {
             className={`${geistSans.variable} ${geistMono.variable} ${mitr.variable} antialiased`}
         >
         <div className="flex flex-col min-h-screen">
-            <Navbar /> {/* Navbar applied globally */}
-            <div className="flex-grow pt-0">
-                <main>{children}</main> {/* Page content */}
-            </div>
+            <NavBar />
+            <main className="flex-grow pt-0">{children}</main> {/* Page content */}
+            <Footer />
         </div>
         </body>
         </html>

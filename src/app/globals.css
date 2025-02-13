@@ -18,6 +18,8 @@ body {
   color: var(--foreground);
   background: var(--background);
   font-family: 'TH SarabunPSK', 'Mitr', 'Sarabun', Arial, Helvetica, sans-serif;
+  overflow: hidden; /* Prevents scrolling */
+
 }
 
 /* globals.css */
