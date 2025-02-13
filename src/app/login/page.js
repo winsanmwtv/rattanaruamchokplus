@@ -80,7 +80,7 @@ const LoginPageComponent = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setSubmitMessage("กำลังตรวจสอบข้อมูล...");
+        setSubmitMessage("");
         setLoading(true);
 
         try {

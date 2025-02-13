@@ -29,13 +29,12 @@ export const metadata = {
 export default function RootLayout({ children }) {
     return (
         <html lang="th">
-        <body
-            className={`${geistSans.variable} ${geistMono.variable} ${mitr.variable} antialiased`}
-        >
+        <body className={`${geistSans.variable} ${geistMono.variable} ${mitr.variable} antialiased`}>
         <div className="flex flex-col min-h-screen">
             <NavBar />
-            <main className="flex-grow pt-0">{children}</main> {/* Page content */}
-            <Footer />
+            {/* This ensures the page content expands to push the footer down */}
+            <main className="flex-grow flex flex-col">{children}</main>
+            <Footer className="mt-auto" /> {/* This forces the footer to stick to the bottom */}
         </div>
         </body>
         </html>
