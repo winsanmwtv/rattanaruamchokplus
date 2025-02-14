@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
+const ver = 'Dev1.0.4.0';
+
 const NavBar = () => {
     const [user, setUser] = useState(null);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -146,7 +148,7 @@ const NavBar = () => {
             }}
         >
             <div style={{ display: "flex", flexDirection: "column", textAlign: "left" }}>
-                <div>ร้านรัตนารวมโชค | Dev1.0.3.1</div>
+                <div>ร้านรัตนารวมโชค | {ver}</div>
                 <div style={{ fontSize: "14px", color: "#ededed" }}>{currentDateTime}</div>
             </div>
 

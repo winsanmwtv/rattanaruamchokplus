@@ -138,10 +138,10 @@ const ClockPage = () => {
 
             {/* Buttons */}
             <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px'}}>
-                <button onClick={handleClockIn} style={buttonStyle}>
+                <button onClick={handleClockIn} style={buttonStyleGreen}>
                     เคาะเวลาเข้างาน
                 </button>
-                <button onClick={handleClockOut} style={buttonStyle}>
+                <button onClick={handleClockOut} style={buttonStyleRed}>
                     เคาะเวลาออกงาน
                 </button>
                 <button onClick={() => router.push('/employee/clock/logs')} style={buttonStyle}>
@@ -162,6 +162,26 @@ const buttonStyle = {
     border: 'none',
     cursor: 'pointer',
     backgroundColor: '#007bff',
+    color: 'white',
+};
+
+const buttonStyleGreen = {
+    padding: '20px',
+    fontSize: '1.2rem',
+    borderRadius: '10px',
+    border: 'none',
+    cursor: 'pointer',
+    backgroundColor: '#179535',
+    color: 'white',
+};
+
+const buttonStyleRed = {
+    padding: '20px',
+    fontSize: '1.2rem',
+    borderRadius: '10px',
+    border: 'none',
+    cursor: 'pointer',
+    backgroundColor: '#c61717',
     color: 'white',
 };
 
