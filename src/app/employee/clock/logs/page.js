@@ -76,11 +76,11 @@ const ClockLogsPage = () => {
                         <td style={tableCellStyle}>{index + 1}</td>
                         <td style={tableCellStyle}>{new Date(log.date).toLocaleDateString('th-TH')}</td>
                         <td style={tableCellStyle}>{firstName} {lastName}</td>
-                        <td style={tableCellStyle}>{log.start_working_time || "-"}</td>
-                        <td style={tableCellStyle}>{log.end_working_time || "-"}</td>
+                        <td style={tableCellStyle}>{log.start_work_time || "-"}</td>
+                        <td style={tableCellStyle}>{log.end_work_time || "-"}</td>
                         <td style={tableCellStyle}>
                             {
-                                (log.start_working_time === null && log.end_working_time !== null)
+                                (log.start_work_time === null && log.end_work_time !== null)
                                     ? "ไม่พบบันทึกเวลาเข้างาน"
                                     : ""
                             }

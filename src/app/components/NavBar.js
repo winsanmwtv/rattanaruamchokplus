@@ -146,7 +146,7 @@ const NavBar = () => {
             }}
         >
             <div style={{ display: "flex", flexDirection: "column", textAlign: "left" }}>
-                <div>ร้านรัตนารวมโชค | Dev1.0.3</div>
+                <div>ร้านรัตนารวมโชค | Dev1.0.3.1</div>
                 <div style={{ fontSize: "14px", color: "#ededed" }}>{currentDateTime}</div>
             </div>
 
