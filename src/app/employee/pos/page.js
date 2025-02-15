@@ -740,16 +740,18 @@ const PosPage = () => {
                     <div id="receipt-print">
                         <div style={{textAlign: 'center', marginBottom: '10px'}}>
                             ร้าน รัตนารวมโชค ({9000})<br/>
-                            สาขา {'พระจอมเกล้าพระนครเหนือ' || "ไม่ระบุ"}<br/>
-                            {new Date().toLocaleDateString('th-TH', {
+                            สาขา {สาขา || "ไม่ระบุ"}<br/>
+                            {new Date().toLocaleDateString('th-TH', { // ส่วนที่แก้ไข
                                 day: '2-digit',
                                 month: '2-digit',
-                                year: 'numeric'
-                            })} | {new Date().toLocaleTimeString('th-TH', {
+                                year: 'numeric',
+                                timeZone: 'Asia/Bangkok' // เพิ่ม timeZone
+                            })} | {new Date().toLocaleTimeString('th-TH', { // ส่วนที่แก้ไข
                             hour: '2-digit',
                             minute: '2-digit',
                             second: '2-digit',
-                            hour12: false
+                            hour12: false,
+                            timeZone: 'Asia/Bangkok' // เพิ่ม timeZone
                         })}<br/><br/>
                             Bill {receiptId} | User {empId}
                         </div>
