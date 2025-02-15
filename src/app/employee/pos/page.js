@@ -3,25 +3,319 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
+// Helper to get a cookie value by name
+const getCookie = (name) => {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+};
+
 const PosPage = () => {
+
+    let justAMoneyIWriteMyself = "";
+
     const router = useRouter();
     const barcodeInputRef = useRef(null);
+    const cashInputRef = useRef(null);
 
-    // State for receipt, scanned items, barcode input, etc.
+    // Common states
     const [receiptId, setReceiptId] = useState('');
-    const [lastScannedItem, setLastScannedItem] = useState(null);
-    const [barcode, setBarcode] = useState("");
     const [itemList, setItemList] = useState([]);
     const [totalPrice, setTotalPrice] = useState(0);
-    const [quantityInput, setQuantityInput] = useState(1);
-    const [isMobile, setIsMobile] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
+    const [changeDue, setChangeDue] = useState(null);
 
-    // On mount, determine if mobile, focus input, and fetch receipt id
+    const [realCash, setRealCash] = useState('')
+
+    // Scanning Mode states
+    const [barcode, setBarcode] = useState("");
+    const [quantityInput, setQuantityInput] = useState(1);
+
+    // Payment Mode states
+    const [isPaymentMode, setIsPaymentMode] = useState(false);
+    const [cashReceived, setCashReceived] = useState("");
+    const [paymentType, setPaymentType] = useState("Cash"); // "Cash" or "Thai QR" (or "Coupon")
+
+    // Get emp_id from cookie (assumes cookie name "emp_id")
+    const empId = getCookie("emp_id");
+
+    // ---------------- API CALL FUNCTIONS ----------------
+
+    // For Cash Payment: verify cash input, compute change, and save transaction.
+    const handleCashPayment = async () => {
+
+        console.log(cashReceived);
+
+        const cash = parseFloat(cashReceived) || 0;
+
+        justAMoneyIWriteMyself = cash;
+
+        if (cash < totalPrice) {
+            setErrorMessage("เงินที่รับมาน้อยกว่าราคารวม");
+            return;
+        }
+        const change = cash - totalPrice;
+        setRealCash(cash.toFixed(2));
+
+        try {
+            let trans_id;
+
+            const transRes = await fetch('/api/transaction/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    emp_id: empId,
+                    branch_id: 9000,
+                    total_price: totalPrice,
+                    status: 'completed',
+                    payment_type: "Cash"
+                })
+            });
+
+            if (!transRes.ok) {
+                const errorData = await transRes.json();
+                setErrorMessage(errorData.error || "Transaction creation failed");
+                return; // Stop further processing
+            }
+
+            const transData = await transRes.json();
+            trans_id = transData.trans_id;
+
+            const receiptRes = await fetch('/api/receipt/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    receipt_id: receiptId,
+                    trans_id: trans_id,
+                    branch_id: 9000,
+                    issue_date: new Date().toISOString().slice(0, 10)
+                })
+            });
+
+            if (!receiptRes.ok) {
+                const errorData = await receiptRes.json();
+                setErrorMessage(errorData.error || "Receipt creation failed");
+                return; // Stop further processing
+            }
+
+
+            for (const item of itemList) {
+                const receiptItemRes = await fetch('/api/receipt_item/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        receipt_id: receiptId,
+                        prod_id: item.barcode,
+                        quantity: item.quantity,
+                        price_each: item.price,
+                    })
+                });
+
+                if (!receiptItemRes.ok) {
+                    const errorData = await receiptItemRes.json();
+                    setErrorMessage(errorData.error || `Receipt item creation failed for ${item.barcode}`);
+                    return; // Stop further processing
+                }
+
+                const transItemRes = await fetch('/api/transaction_item/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        trans_id: trans_id,
+                        prod_id: item.barcode,
+                        quantity: item.quantity,
+                        price_each: item.price,
+                    })
+                });
+
+                if (!transItemRes.ok) {
+                    const errorData = await transItemRes.json();
+                    setErrorMessage(errorData.error || `Transaction item creation failed for ${item.barcode}`);
+                    return; // Stop further processing
+                }
+
+
+                const stockRes = await fetch('/api/product/updateStock', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        prod_id: item.barcode,
+                        quantity: item.quantity,
+                        branch_id: 9000
+                    })
+                });
+
+                if (!stockRes.ok) {
+                    const errorData = await stockRes.json();
+                    setErrorMessage(errorData.error || `Stock update failed for product ${item.barcode}`);
+                    return; // Stop further processing
+                }
+            }
+
+            const shiftRes = await fetch('/api/shift/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    date: new Date().toISOString().slice(0, 10),
+                    emp_id: empId,
+                    increment: totalPrice
+                })
+            });
+
+            if (!shiftRes.ok) {
+                const errorData = await shiftRes.json();
+                setErrorMessage(errorData.error || "Shift update failed");
+                return; // Stop further processing
+            }
+
+            setChangeDue(change.toFixed(2));
+            setErrorMessage("");
+            setCashReceived("");
+            cashInputRef.current?.focus();
+
+        } catch (error) {
+            console.error("Error processing Cash payment:", error);
+            setErrorMessage(error.message || "Error processing payment");
+        }
+    };
+
+
+    // For Thai QR Payment: save transaction with payment type "Thai QR"
+    const handleThaiQRPayment = async () => {
+        try {
+            let trans_id;
+
+            const transRes = await fetch('/api/transaction/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    emp_id: empId,
+                    branch_id: 9000,
+                    total_price: totalPrice,
+                    status: 'completed',
+                    payment_type: "Thai QR"
+                })
+            });
+
+            if (!transRes.ok) {
+                const errorData = await transRes.json();
+                setErrorMessage(errorData.error || "Transaction creation failed");
+                return;
+            }
+
+            const transData = await transRes.json();
+            trans_id = transData.trans_id;
+
+            const receiptRes = await fetch('/api/receipt/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    receipt_id: receiptId,
+                    trans_id: trans_id,
+                    branch_id: 9000,
+                    issue_date: new Date().toISOString().slice(0, 10)
+                })
+            });
+
+            if (!receiptRes.ok) {
+                const errorData = await receiptRes.json();
+                setErrorMessage(errorData.error || "Receipt creation failed");
+                return;
+            }
+
+            for (const item of itemList) {
+                const receiptItemRes = await fetch('/api/receipt_item/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        receipt_id: receiptId,
+                        prod_id: item.barcode,
+                        quantity: item.quantity,
+                        price_each: item.price,
+                    })
+                });
+
+                if (!receiptItemRes.ok) {
+                    const errorData = await receiptItemRes.json();
+                    setErrorMessage(errorData.error || `Receipt item creation failed for ${item.barcode}`);
+                    return;
+                }
+
+                const transItemRes = await fetch('/api/transaction_item/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        trans_id: trans_id,
+                        prod_id: item.barcode,
+                        quantity: item.quantity,
+                        price_each: item.price,
+                    })
+                });
+
+                if (!transItemRes.ok) {
+                    const errorData = await transItemRes.json();
+                    setErrorMessage(errorData.error || `Transaction item creation failed for ${item.barcode}`);
+                    return;
+                }
+
+                const stockRes = await fetch('/api/product/updateStock', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        prod_id: item.barcode,
+                        quantity: item.quantity,
+                        branch_id: 9000
+                    })
+                });
+
+                if (!stockRes.ok) {
+                    const errorData = await stockRes.json();
+                    setErrorMessage(errorData.error || `Stock update failed for product ${item.barcode}`);
+                    return;
+                }
+            }
+
+            const shiftRes = await fetch('/api/shift/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    date: new Date().toISOString().slice(0, 10),
+                    emp_id: empId,
+                    increment: totalPrice
+                })
+            });
+
+            if (!shiftRes.ok) {
+                const errorData = await shiftRes.json();
+                setErrorMessage(errorData.error || "Shift update failed");
+                return;
+            }
+
+            setErrorMessage("");
+            alert("Thai QR payment recorded. Page will reload.");
+            window.location.reload();
+
+        } catch (error) {
+            console.error("Error processing ThaiQR payment:", error);
+            setErrorMessage(error.message || "Error processing payment");
+        }
+    };
+
+    // ---------------- USE EFFECT & CALCULATIONS ----------------
+
     useEffect(() => {
-        setIsMobile(window.innerWidth <= 768);
-        barcodeInputRef.current?.focus();
-
+        if (window.innerWidth <= 768) {
+            router.push('/employee/pos/mobile-app');
+            return;
+        }
+        // Focus on the proper input based on mode.
+        if (!isPaymentMode) {
+            barcodeInputRef.current?.focus();
+        } else {
+            cashInputRef.current?.focus();
+        }
+        // Fetch a new receipt id.
         const fetchReceiptId = async () => {
             try {
                 const res = await fetch('/api/receipt/generate', { method: 'GET' });
@@ -35,30 +329,20 @@ const PosPage = () => {
                 console.error('Error fetching receipt id:', error);
             }
         };
-
         fetchReceiptId();
+    }, [router, isPaymentMode]);
 
-        const handleEnter = (event) => {
-            if (event.key === 'Enter') {
-                event.preventDefault();
-                if (barcode.trim() !== "") {
-                    handleBarcodeSubmit();
-                    setTimeout(() => barcodeInputRef.current?.focus(), 100);
-                }
-            }
-        };
+    useEffect(() => {
+        const newTotal = itemList.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        setTotalPrice(newTotal);
+    }, [itemList]);
 
-        window.addEventListener('keydown', handleEnter);
-        return () => window.removeEventListener('keydown', handleEnter);
-    }, [barcode]);
+    // ---------------- Scanning Mode Handlers ----------------
 
-    // Update barcode state on input change
     const handleBarcodeChange = (e) => {
         setBarcode(e.target.value);
     };
 
-    // When a barcode is submitted, call the product API to look up product details.
-    // If the product is not found, show an error message without adding an item.
     const handleBarcodeSubmit = async () => {
         if (barcode.trim() !== "") {
             const quantityToUse = parseInt(quantityInput, 10) || 1;
@@ -66,7 +350,7 @@ const PosPage = () => {
                 const res = await fetch(`/api/product/get?barcode=${barcode}`, { method: 'GET' });
                 if (!res.ok) {
                     setErrorMessage("Product not found");
-                    setTimeout(() => setErrorMessage(""), 3000); // Clear error after 3 seconds
+                    setTimeout(() => setErrorMessage(""), 3000);
                     setBarcode("");
                     setQuantityInput(1);
                     barcodeInputRef.current?.focus();
@@ -75,11 +359,11 @@ const PosPage = () => {
                 const product = await res.json();
                 const newItem = {
                     id: itemList.length + 1,
+                    barcode: barcode, // Add barcode here
                     name_th: product.name_th,
                     quantity: quantityToUse,
                     price: parseFloat(product.price)
                 };
-                setLastScannedItem(newItem);
                 setItemList([...itemList, newItem]);
                 setBarcode("");
                 setQuantityInput(1);
@@ -90,37 +374,44 @@ const PosPage = () => {
         }
     };
 
-    // Update total price whenever itemList changes
-    useEffect(() => {
-        const newTotal = itemList.reduce((sum, item) => sum + item.price * item.quantity, 0);
-        setTotalPrice(newTotal);
-    }, [itemList]);
-
     const handleResetBarcode = () => {
         setBarcode("");
         barcodeInputRef.current?.focus();
     };
 
-    const handleQuantityInputChange = (e) => {
-        setQuantityInput(e.target.value);
+    // Transition to Payment Mode (triggered by "รวมยอด" button)
+    const handleEnterPaymentMode = () => {
+        if (totalPrice <= 0) {
+            setErrorMessage("ราคารวมต้องมากกว่า 0");
+            return;
+        }
+        setErrorMessage("");
+        setIsPaymentMode(true);
+        setPaymentType("Cash"); // Default to Cash
+        setTimeout(() => cashInputRef.current?.focus(), 100);
     };
 
-    // Function to handle order submission
-    const handleSubmitOrder = () => {
-        console.log("Order Submitted:", {
-            receiptId,
-            items: itemList,
-            totalPrice
-        });
-        // Expand with actual order submission logic (e.g., API call) as needed.
+    // ---------------- Payment Mode Handlers ----------------
+
+    // For numeric keypad in Payment Mode (cash input remains unchanged)
+    const handleCashInput = (value) => {
+        if (value === 'ตกลง') return;
+        setCashReceived(cashReceived + value.toString());
     };
 
-    // Menu buttons (with some sample actions)
-    const menuButtons = [
+    const handleResetCashInput = () => {
+        setCashReceived("");
+        cashInputRef.current?.focus();
+    };
+
+    // ---------------- MENU BUTTON DEFINITIONS ----------------
+
+    // Scanning Mode: Original 8 buttons with quantity control.
+    const scanningMenuButtons = [
         { label: "เช็คราคาสินค้า", path: "/employee/enquiry" },
         { label: "คืนสินค้า (Void)", action: () => alert("Void Bill") },
         { label: "พักบิล", action: () => alert("Hold Bill") },
-        { label: "ออกจากระบบ", action: () => {/* add logout logic if needed */} },
+        { label: "ออกจากระบบ", action: () => { /* add logout logic if needed */ } },
         { label: "เรียกรายการพักบิล", action: () => alert("Call Hold Bill") },
         { label: "ยกเลิกบิลนี้", action: () => setItemList([]) },
         { label: "สินค้าอื่นๆ", action: () => alert("Other Items") },
@@ -131,7 +422,7 @@ const PosPage = () => {
                     <input
                         type="number"
                         value={quantityInput}
-                        onChange={handleQuantityInputChange}
+                        onChange={(e) => setQuantityInput(e.target.value)}
                         style={{
                             padding: '5px',
                             width: '50px',
@@ -178,191 +469,396 @@ const PosPage = () => {
         },
     ];
 
-    // Render the list of items in the current order
-    const renderItemList = () => (
-        <div style={{ border: '1px solid #ccc', padding: '10px', height: isMobile ? 'calc(50vh - 150px)' : 'calc(50vh - 100px)', overflowY: 'auto' }}>
-            {itemList.map(item => (
-                <div key={item.id} style={{ display: 'flex', alignItems: 'center', marginBottom: '5px' }}>
-                    <div style={{ width: '30px', textAlign: 'center', borderRadius: '50%', border: '1px solid black' }}>
-                        {item.quantity}
-                    </div>
-                    <div style={{ marginLeft: '10px' }}>
-                        {item.name_th}
-                        {item.quantity > 1 && <span style={{ marginLeft: '5px' }}> (@{item.price.toFixed(2)})</span>}
-                    </div>
-                    <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-                        {(item.price * item.quantity).toFixed(2)}
-                    </div>
-                </div>
-            ))}
-            {itemList.length === 0 && <div style={{ textAlign: 'center' }}>ไม่มีสินค้า</div>}
-        </div>
-    );
+    // Payment Mode: 4 buttons (remove cancel item button)
+    const paymentMenuButtons = [
+        { label: "Cash", action: handleCashPayment },
+        { label: "Thai QR", action: () => setPaymentType("Thai QR") },
+        { label: "Coupon", action: () => alert("Coupon payment not available") },
+        { label: "Add Item", action: () => { setIsPaymentMode(false); setCashReceived(""); setErrorMessage(""); } }
+    ];
 
-    return (
-        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', height: '100vh', overflow: 'hidden' }}>
-            {/* LEFT PART */}
-            <div style={{
-                width: isMobile ? '100%' : '50%',
-                padding: '20px',
-                borderRight: isMobile ? 'none' : '1px solid #ccc',
-                overflowY: 'auto',
-                height: isMobile ? 'auto' : '100%'
-            }}>
-                {/* Display Receipt ID above the barcode input */}
-                <div style={{marginBottom: '10px', textAlign: 'center', fontSize: '1.2rem', fontWeight: 'bold'}}>
-                    รหัสใบเสร็จ: {receiptId}
-                </div>
-                {lastScannedItem && (
-                    <div style={{marginBottom: '10px'}}>
-                        <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '5px'}}>
-                            <div style={{fontWeight: 'bold'}}>{lastScannedItem.name_th}</div>
-                            <div>{lastScannedItem.price.toFixed(2)}</div>
-                        </div>
-                        <div>บาร์โค้ด: {barcode}</div>
-                    </div>
-                )}
-                {renderItemList()}
-                <div style={{
-                    display: 'flex',
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginTop: '20px'
-                }}>
-                    {/* Price Module */}
-                    <div style={{display: 'flex', flexDirection: 'column'}}>
-                        <div style={{display: 'flex', alignItems: 'center'}}>
-                            <span style={{fontSize: '0.8rem'}}>ราคารวม</span>
-                            <span style={{fontSize: '1.5rem', marginLeft: '10px'}}>{totalPrice.toFixed(2)}</span>
-                        </div>
-                    </div>
+    // ---------------- RENDER FUNCTIONS ----------------
 
-                    {/* Button Module */}
-                    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end'}}>
-                        <button
-                            onClick={() => {
-                                handleSubmitOrder();
-                                // Example of setting an error message (replace with your validation)
-                                if (totalPrice <= 0) { // Example: Check if zero or negative
-                                    setErrorMessage("ราคารวมต้องมากกว่า 0");
-                                } else {
-                                    setErrorMessage(null); // Clear any previous error
-                                }
-                            }}
-                            style={{
-                                backgroundColor: '#4CAF50',
-                                color: 'white',
-                                padding: '10px',
-                                borderRadius: '5px',
-                                border: 'none',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            ยืนยันการสั่งซื้อ
-                        </button>
-                        {errorMessage && (
-                            <div style={{marginTop: '10px', color: 'red', fontWeight: 'bold', textAlign: 'right'}}>
-                                {errorMessage}
-                            </div>
-                        )}
+    // Left Side: In scanning mode, show receipt details and item list.
+    // In Payment Mode, if paymentType is "Thai QR", show the PromptPay QR image and a "Submit ThaiQR" button.
+    const renderLeftContent = () => (
+        <div>
+            {changeDue !== null ? (
+                <div style={{textAlign: 'center', fontSize: '2rem', fontWeight: 'bold', padding: '20px'}}>
+                    <div style={{fontSize: '1.2rem'}}> {/* Smaller receipt ID */}
+                        รหัสใบเสร็จ: {receiptId}
                     </div>
-                </div>
-            </div>
-
-            {/* RIGHT PART */}
-            <div style={{
-                width: isMobile ? '100%' : '50%',
-                padding: '20px',
-                overflowY: 'auto',
-                height: isMobile ? 'auto' : '100%'
-            }}>
-                <div style={{display: 'flex', alignItems: 'center', marginBottom: '10px'}}>
-                    <input
-                        type="text"
-                        placeholder="บาร์โค้ด"
-                        value={barcode}
-                        onChange={handleBarcodeChange}
-                        ref={barcodeInputRef}
+                    <div>เงินทอน: {changeDue}</div>
+                    <button
+                        onClick={() => window.location.reload()}
                         style={{
-                            padding: '10px',
-                            flexGrow: 1,
-                            marginRight: '10px',
+                            marginTop: '20px',
+                            backgroundColor: '#4CAF50',
+                            color: 'white',
+                            padding: '10px 20px',
                             borderRadius: '5px',
-                            border: '1px solid #ccc'
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '1.2rem'
                         }}
-                    />
+                    >
+                        ทำรายการอื่นต่อ
+                    </button>
                 </div>
-                <div style={{display: 'flex', flexDirection: 'row', gap: '20px'}}>
-                    <div style={{flex: 2}}> {/* Left side: Menu Buttons (flex: 2) */}
-                        <div style={{
-                            display: 'flex',
-                            flexDirection: 'row',
-                            flexWrap: 'wrap',
-                            gap: '10px',
-                            marginBottom: '10px'
-                        }}>
-                            {menuButtons.map((button, index) => (
-                                <button
-                                    key={index}
-                                    onClick={button.action || (() => router.push(button.path || ''))}
-                                    style={{
-                                        width: 'calc(50% - 10px)', // Two columns (50% width)
-                                        padding: '10px',
-                                        borderRadius: '5px',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        backgroundColor: '#333',
-                                        color: 'white',
-                                        ...(button.label === "คืนสินค้า (Void)" || button.label === "ออกจากระบบ" ? {backgroundColor: 'red'} : {})
-                                    }}
-                                >
-                                    {button.label}
-                                </button>
-                            ))}
-                        </div>
+            ) : (
+                <div>
+                    <div style={{marginBottom: '10px', textAlign: 'center', fontSize: '1.2rem', fontWeight: 'bold' }}>
+                        รหัสใบเสร็จ: {receiptId}
                     </div>
 
-                    <div style={{flex: 1, display: 'flex', flexDirection: 'column'}}> {/* Right side: Numpad */}
-                        <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px'}}>
-                            {[7, 8, 9, 4, 5, 6, 1, 2, 3, 0, 'ตกลง'].map((key, index) => (
-                                <button
-                                    key={index}
-                                    onClick={() => {
-                                        if (key === 'ตกลง') {
-                                            handleBarcodeSubmit();
-                                        } else {
-                                            setBarcode(barcode + key);
-                                        }
-                                    }}
-                                    style={{
-                                        padding: '10px',
-                                        borderRadius: '5px',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        backgroundColor: key === 'ตกลง' ? 'green' : 'dark_aqua',
-                                        color: 'white',
-                                    }}
-                                >
-                                    {key}
-                                </button>
-                            ))}
+                    {isPaymentMode && paymentType === "Thai QR" ? (
+                        <div style={{ textAlign: 'center' }}>
+                            <img
+                                src={`https://promptpay.io/0927149245/${totalPrice}.png`}
+                                alt="PromptPay QR Code"
+                                style={{ maxWidth: '100%', maxHeight: '100%' }}
+                            />
                             <button
-                                onClick={handleResetBarcode}
+                                onClick={handleThaiQRPayment}
                                 style={{
+                                    marginTop: '10px',
+                                    backgroundColor: '#4CAF50',
+                                    color: 'white',
                                     padding: '10px',
                                     borderRadius: '5px',
                                     border: 'none',
-                                    cursor: 'pointer',
-                                    backgroundColor: 'red',
-                                    color: 'white',
+                                    cursor: 'pointer'
                                 }}
                             >
-                                รีเซ็ต
+                                Submit ThaiQR
+                            </button>
+                        </div>
+                    ) : (
+                        <div style={{
+                            border: '1px solid #ccc',
+                            padding: '10px',
+                            height: 'calc(50vh - 100px)',
+                            overflowY: 'auto'
+                        }}>
+                            {itemList.length > 0 ? itemList.map(item => (
+                                <div key={item.id} style={{ display: 'flex', alignItems: 'center', marginBottom: '5px' }}>
+                                    <div style={{
+                                        width: '30px',
+                                        textAlign: 'center',
+                                        borderRadius: '50%',
+                                        border: '1px solid black'
+                                    }}>
+                                        {item.quantity}
+                                    </div>
+                                    <div style={{ marginLeft: '10px' }}>
+                                        {item.name_th} ({item.barcode})
+                                        {item.quantity > 1 &&
+                                            <span style={{ marginLeft: '5px' }}> (@{item.price.toFixed(2)})</span>}
+                                    </div>
+                                    <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+                                        {(item.price * item.quantity).toFixed(2)}
+                                    </div>
+                                </div>
+                            )) : <div style={{ textAlign: 'center' }}>ไม่มีสินค้า</div>}
+                        </div>
+                    )}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontSize: '0.8rem' }}>ราคารวม</span>
+                            <span style={{ fontSize: '1.5rem' }}>{totalPrice.toFixed(2)}</span>
+                        </div>
+                    </div>
+                    {errorMessage && (
+                        <div style={{ marginTop: '10px', color: 'red', fontWeight: 'bold', textAlign: 'right' }}>
+                            {errorMessage}
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+
+    // Right Side: Render different UI for scanning mode vs. payment mode.
+    const renderRightContent = () => {
+        if (changeDue !== null) { // Show receipt
+            return (
+                <div style={{
+                    border: '1px solid #ccc',
+                    padding: '10px',
+                    height: '100%',
+                    overflowY: 'auto',
+                    width: '100%',
+                    fontFamily: 'monospace',
+                    fontSize: '14px'
+                }}>
+                    <div style={{textAlign: 'center', marginBottom: '10px'}}>
+                        ร้าน รัตนารวมโชค ({9000})<br/>
+                        สาขา {'พระจอมเกล้าพระนครเหนือ' || "ไม่ระบุ"}<br/>
+                        {/* Format date and time: DD/MM/YYYY | HH:MM:SS */}
+                        {new Date().toLocaleDateString('th-TH', {day: '2-digit', month: '2-digit', year: 'numeric'})} | {new Date().toLocaleTimeString('th-TH', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: false
+                        })}<br/><br/> {/* 24-hour format */}
+                        Bill {receiptId} | User {empId}
+                    </div>
+
+                    <div style={{marginBottom: '10px'}}>
+                        {itemList.map(item => (
+                            <div key={item.id} style={{display: 'flex', marginBottom: '5px'}}>
+                                <div style={{width: '40px', textAlign: 'right'}}>{item.quantity}</div>
+                                <div style={{flexGrow: 1, marginLeft: '10px'}}>
+                                    {item.name_th}
+                                    {item.quantity > 1 &&
+                                        <span style={{marginLeft: '5px'}}>(@{item.price.toFixed(2)})</span>}
+                                </div>
+                                <div style={{
+                                    width: '60px',
+                                    textAlign: 'right'
+                                }}>{(item.price * item.quantity).toFixed(2)}</div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div style={{borderTop: '1px dashed #ccc', paddingTop: '10px', marginBottom: '10px'}}>
+                        <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                            <div>ยอดรวม</div>
+                            <div>{totalPrice.toFixed(2)}</div>
+                        </div>
+                        <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                            <div>รับเงินมา</div>
+                            <div>{realCash}</div>
+                        </div>
+                        <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                            <div>เงินทอน</div>
+                            <div>{changeDue}</div>
+                        </div>
+                    </div>
+
+                    <div style={{textAlign: 'center'}}>
+                        *** ขอบคุณที่ใช้บริการ ***
+                    </div>
+
+
+                </div>
+            );
+        } else if (!isPaymentMode && changeDue === null) {
+            // Scanning Mode: Barcode input, original 8-menu buttons, numpad, and an extra "รวมยอด" button below the numpad.
+            return (
+                <>
+                    <div style={{display: 'flex', alignItems: 'center', marginBottom: '10px'}}>
+                        <input
+                            type="text"
+                            placeholder="บาร์โค้ด"
+                            value={barcode}
+                            onChange={handleBarcodeChange}
+                            ref={barcodeInputRef}
+                            style={{
+                                padding: '10px',
+                                flexGrow: 1,
+                                marginRight: '10px',
+                                borderRadius: '5px',
+                                border: '1px solid #ccc'
+                            }}
+                        />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'row', gap: '20px' }}>
+                        <div style={{ flex: 2 }}>
+                            <div style={{
+                                display: 'flex',
+                                flexDirection: 'row',
+                                flexWrap: 'wrap',
+                                gap: '10px',
+                                marginBottom: '10px'
+                            }}>
+                                {scanningMenuButtons.map((button, index) => (
+                                    <button
+                                        key={index}
+                                        onClick={button.action || (() => router.push(button.path || ''))}
+                                        style={{
+                                            width: 'calc(50% - 10px)',
+                                            padding: '10px',
+                                            borderRadius: '5px',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            backgroundColor: '#333',
+                                            color: 'white',
+                                            ...(button.label === "คืนสินค้า (Void)" || button.label === "ออกจากระบบ" ? { backgroundColor: 'red' } : {})
+                                        }}
+                                    >
+                                        {button.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(3, 1fr)',
+                                gap: '10px'
+                            }}>
+                                {[7,8,9,4,5,6,1,2,3,0,'ตกลง'].map((key, index) => (
+                                    <button
+                                        key={index}
+                                        onClick={() => {
+                                            if (key === 'ตกลง') {
+                                                handleBarcodeSubmit();
+                                            } else {
+                                                setBarcode(barcode + key.toString());
+                                            }
+                                        }}
+                                        style={{
+                                            padding: '10px',
+                                            borderRadius: '5px',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            backgroundColor: key === 'ตกลง' ? 'green' : '#333',
+                                            color: 'white'
+                                        }}
+                                    >
+                                        {key}
+                                    </button>
+                                ))}
+                                <button
+                                    onClick={handleResetBarcode}
+                                    style={{
+                                        padding: '10px',
+                                        borderRadius: '5px',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        backgroundColor: 'red',
+                                        color: 'white'
+                                    }}
+                                >
+                                    รีเซ็ต
+                                </button>
+                            </div>
+                            {/* Extra "รวมยอด" button below the numpad */}
+                            <button
+                                onClick={handleEnterPaymentMode}
+                                style={{
+                                    marginTop: '10px',
+                                    backgroundColor: '#4CAF50',
+                                    color: 'white',
+                                    padding: '10px',
+                                    borderRadius: '5px',
+                                    border: 'none',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                รวมยอด
                             </button>
                         </div>
                     </div>
-                </div>
+                </>
+            );
+        } else {
+            // Payment Mode: Cash input field, payment menu, numeric keypad remains unchanged.
+            return (
+                <>
+                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
+                        <input
+                            type="text"
+                            placeholder="เงินที่รับมา"
+                            value={cashReceived}
+                            onChange={(e) => setCashReceived(e.target.value)}
+                            ref={cashInputRef}
+                            style={{
+                                padding: '10px',
+                                flexGrow: 1,
+                                marginRight: '10px',
+                                borderRadius: '5px',
+                                border: '1px solid #ccc'
+                            }}
+                        />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'row', gap: '20px' }}>
+                        <div style={{ flex: 2 }}>
+                            <div style={{
+                                display: 'flex',
+                                flexDirection: 'row',
+                                flexWrap: 'wrap',
+                                gap: '10px',
+                                marginBottom: '10px'
+                            }}>
+                                {paymentMenuButtons.map((button, index) => (
+                                    <button
+                                        key={index}
+                                        onClick={button.action}
+                                        style={{
+                                            width: 'calc(50% - 10px)',
+                                            padding: '10px',
+                                            borderRadius: '5px',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            backgroundColor: '#333',
+                                            color: 'white'
+                                        }}
+                                    >
+                                        {button.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(3, 1fr)',
+                                gap: '10px'
+                            }}>
+                                {[7,8,9,4,5,6,1,2,3,0,'ตกลง'].map((key, index) => (
+                                    <button
+                                        key={index}
+                                        onClick={() => {
+                                            if (key === 'ตกลง') return;
+                                            else handleCashInput(key);
+                                        }}
+                                        style={{
+                                            padding: '10px',
+                                            borderRadius: '5px',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            backgroundColor: key === 'ตกลง' ? 'green' : '#333',
+                                            color: 'white'
+                                        }}
+                                    >
+                                        {key}
+                                    </button>
+                                ))}
+                                <button
+                                    onClick={handleResetCashInput}
+                                    style={{
+                                        padding: '10px',
+                                        borderRadius: '5px',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        backgroundColor: 'red',
+                                        color: 'white'
+                                    }}
+                                >
+                                    รีเซ็ต
+                                </button>
+                            </div>
+                            {/* No extra submit button here as payment is triggered by the Cash or Thai QR buttons */}
+                        </div>
+                    </div>
+                </>
+            );
+        }
+    };
+
+    // ---------------- FINAL RENDER ----------------
+
+    return (
+        <div style={{ display: 'flex', flexDirection: 'row', height: '100vh', overflow: 'hidden' }}>
+            {/* Left Side: Receipt details or ThaiQR QR code */}
+            <div style={{ width: '50%', padding: '20px', borderRight: '1px solid #ccc', overflowY: 'auto' }}>
+                {renderLeftContent()}
+            </div>
+            {/* Right Side: Scanning Mode vs. Payment Mode UI */}
+            <div style={{ width: '50%', padding: '20px', overflowY: 'auto' }}>
+                {renderRightContent()}
             </div>
         </div>
     );

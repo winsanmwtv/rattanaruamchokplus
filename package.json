@@ -9,19 +9,25 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@thewirv/react-barcode-scanner": "^3.3.5",
+    "@zxing/library": "^0.21.3",
     "axios": "^1.7.9",
     "bcryptjs": "^2.4.3",
     "cookies-next": "^5.1.0",
     "dotenv": "^16.4.7",
+    "html5-qrcode": "^2.3.8",
     "js-cookie": "^3.0.5",
     "mysql2": "^3.12.0",
     "next": "15.1.6",
     "nookies": "^2.5.2",
+    "quagga": "^0.12.1",
     "react": "^19.0.0",
+    "react-barcode-reader": "^0.0.2",
     "react-cookie": "^7.2.2",
     "react-dom": "^19.0.0",
     "react-router": "^7.1.5",
     "react-router-dom": "^7.1.5",
+    "react-webcam": "^7.2.0",
     "styled-components": "^6.1.15"
   },
   "devDependencies": {

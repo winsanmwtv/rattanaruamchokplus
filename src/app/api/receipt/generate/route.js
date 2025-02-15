@@ -6,8 +6,8 @@ export async function GET(request) {
 
     try {
         const [rows] = await promisePool.query(
-            `SELECT receipt_id FROM Receipt 
-       WHERE receipt_id LIKE ? ORDER BY receipt_id DESC LIMIT 1`,
+            `SELECT receipt_id FROM Receipt
+             WHERE receipt_id LIKE ? ORDER BY receipt_id DESC LIMIT 1`,
             [`${today}${branchId}%`]
         );
 

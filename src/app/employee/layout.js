@@ -4,26 +4,48 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function EmployeeLayout({ children }) {
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [employee, setEmployee] = useState(null);
     const router = useRouter();
 
     useEffect(() => {
-        const getCookie = (name) => {
-            return document.cookie
-                .split("; ")
-                .find((row) => row.startsWith(name + "="))
-                ?.split("=")[1];
-        };
+        // Utility function to parse cookies into an object
+        const getCookies = () =>
+            document.cookie.split("; ").reduce((acc, cookie) => {
+                const [name, value] = cookie.split("=");
+                acc[name] = decodeURIComponent(value);
+                return acc;
+            }, {});
 
-        const emp_id = getCookie("emp_id");
-        if (emp_id) {
-            setIsAuthenticated(true);
+        const cookies = getCookies();
+
+        // Check if the required employee cookie exists
+        if (cookies.emp_id) {
+            // Set employee state with available cookie data
+            setEmployee({
+                emp_id: cookies.emp_id,
+                firstname: cookies.firstname || "",
+                lastname: cookies.lastname || "",
+                img_path: cookies.img_path || "", // Employee profile image path
+                // Add any additional employee data here as needed
+            });
         } else {
-            router.push("/login"); // Redirect if session is invalid
+            // Redirect to login if not authenticated
+            router.push("/login");
         }
-    }, []);
+    }, [router]);
 
-    if (!isAuthenticated) return <div className="h-screen flex items-center justify-center">Redirecting...</div>;
+    if (!employee) {
+        return (
+            <div className="h-screen flex items-center justify-center">
+                Redirecting...
+            </div>
+        );
+    }
 
-    return <>{children}</>; // Only render content without duplicating NavBar/Footer
+    return (
+        <div>
+
+            <main>{children}</main>
+        </div>
+    );
 }

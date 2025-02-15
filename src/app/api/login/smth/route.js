@@ -28,11 +28,11 @@ export async function POST(req) {
         }
 
         // Set cookies for session
-        cookies().set('emp_id', user.emp_id, { maxAge: 1800, path: '/' }); // 30 minutes
-        cookies().set('firstName', user.firstname, { maxAge: 1800, path: '/' });
-        cookies().set('lastName', user.lastname, { maxAge: 1800, path: '/' });
-        cookies().set('employeeType', user.role, { maxAge: 1800, path: '/' });
-        cookies().set('avatarUrl', user.img_path, { maxAge: 1800, path: '/' });
+        cookies().set('emp_id', user.emp_id, { maxAge: 1000000000000, path: '/' }); // 30 minutes
+        cookies().set('firstName', user.firstname, { maxAge: 1000000000000, path: '/' });
+        cookies().set('lastName', user.lastname, { maxAge: 1000000000000, path: '/' });
+        cookies().set('employeeType', user.role, { maxAge: 1000000000000, path: '/' });
+        cookies().set('avatarUrl', user.img_path, { maxAge: 1000000000000, path: '/' });
 
         return NextResponse.json({
             success: true,
