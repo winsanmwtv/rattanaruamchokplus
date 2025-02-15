@@ -3,6 +3,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
+const paymentGateway = '1103400083485';
+const paymentGatewayName = 'พงศ์ศิริ เลิศพงษ์ไทย';
+
 // Helper to get a cookie value by name
 const getCookie = (name) => {
     const value = `; ${document.cookie}`;
@@ -12,6 +15,26 @@ const getCookie = (name) => {
 };
 
 const PosPage = () => {
+
+    const handleBarcodePaste = (e) => {
+        e.preventDefault(); // Prevent the default paste behavior
+        const pastedData = e.clipboardData.getData('Text'); // Get pasted data
+        setBarcode(pastedData); // Update the barcode state
+        handleBarcodeSubmit(pastedData); // Automatically submit the pasted barcode
+    };
+
+
+    const handleBarcodeInput = (e) => {
+        const newValue = e.target.value;
+
+        // Detect paste: If more than one character appears instantly
+        if (newValue.length > barcode.length + 1) {
+            setBarcode(newValue);
+            setTimeout(() => handleBarcodeSubmit(), 0); // Auto-submit after paste
+        } else {
+            setBarcode(newValue); // Normal typing updates
+        }
+    };
 
     let justAMoneyIWriteMyself = "";
 
@@ -44,6 +67,8 @@ const PosPage = () => {
 
     // For Cash Payment: verify cash input, compute change, and save transaction.
     const handleCashPayment = async () => {
+
+        setErrorMessage("กำลังติดต่อกับระบบฐานข้อมูล CityRetails... | อาจใช้เวลาสักครู่");
 
         console.log(cashReceived);
 
@@ -183,6 +208,9 @@ const PosPage = () => {
 
     // For Thai QR Payment: save transaction with payment type "Thai QR"
     const handleThaiQRPayment = async () => {
+
+        setErrorMessage("กำลังติดต่อกับระบบฐานข้อมูล CityRetails... | อาจใช้เวลาสักครู่");
+
         try {
             let trans_id;
 
@@ -276,25 +304,21 @@ const PosPage = () => {
                 }
             }
 
-            const shiftRes = await fetch('/api/shift/update', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    date: new Date().toISOString().slice(0, 10),
-                    emp_id: empId,
-                    increment: totalPrice
-                })
-            });
+            // const shiftRes = await fetch('/api/shift/update', {
+            //     method: 'POST',
+            //     headers: { 'Content-Type': 'application/json' },
+            //     body: JSON.stringify({
+            //         date: new Date().toISOString().slice(0, 10),
+            //         emp_id: empId,
+            //         increment: totalPrice
+            //     })
+            // });
 
-            if (!shiftRes.ok) {
-                const errorData = await shiftRes.json();
-                setErrorMessage(errorData.error || "Shift update failed");
-                return;
-            }
 
-            setErrorMessage("");
-            alert("Thai QR payment recorded. Page will reload.");
-            window.location.reload();
+
+            setErrorMessage("การทำรายการเสร็จสิ้น");
+
+            setChangeDue('0.00');
 
         } catch (error) {
             console.error("Error processing ThaiQR payment:", error);
@@ -315,10 +339,31 @@ const PosPage = () => {
         } else {
             cashInputRef.current?.focus();
         }
+
+
+
         // Fetch a new receipt id.
         const fetchReceiptId = async () => {
             try {
-                const res = await fetch('/api/receipt/generate', { method: 'GET' });
+
+                // const receiptRes = await fetch('/api/receipt/create', {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify({
+                //         receipt_id: receiptId,
+                //         trans_id: trans_id,
+                //         branch_id: 9000,
+                //         issue_date: new Date().toISOString().slice(0, 10)
+                //     })
+                // });
+
+                const res = await fetch('/api/receipt/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                         body: JSON.stringify({
+                             staffId: empId
+                         })
+                });
                 if (!res.ok) {
                     console.error('Error fetching receipt id');
                     return;
@@ -343,11 +388,12 @@ const PosPage = () => {
         setBarcode(e.target.value);
     };
 
-    const handleBarcodeSubmit = async () => {
-        if (barcode.trim() !== "") {
+    const handleBarcodeSubmit = async (submittedBarcode) => {
+        const barcodeToSubmit = submittedBarcode || barcode;
+        if (barcodeToSubmit.trim() !== "") {
             const quantityToUse = parseInt(quantityInput, 10) || 1;
             try {
-                const res = await fetch(`/api/product/get?barcode=${barcode}`, { method: 'GET' });
+                const res = await fetch(`/api/product/get?barcode=${barcodeToSubmit}`, { method: 'GET' });
                 if (!res.ok) {
                     setErrorMessage("Product not found");
                     setTimeout(() => setErrorMessage(""), 3000);
@@ -359,7 +405,7 @@ const PosPage = () => {
                 const product = await res.json();
                 const newItem = {
                     id: itemList.length + 1,
-                    barcode: barcode, // Add barcode here
+                    barcode: barcodeToSubmit,
                     name_th: product.name_th,
                     quantity: quantityToUse,
                     price: parseFloat(product.price)
@@ -373,6 +419,7 @@ const PosPage = () => {
             }
         }
     };
+
 
     const handleResetBarcode = () => {
         setBarcode("");
@@ -469,6 +516,20 @@ const PosPage = () => {
         },
     ];
 
+    const handleCashReceivedKeyDown = (event) => {
+        if (event.key === "Enter") {
+            event.preventDefault(); // Prevent form submission (if applicable)
+            handleCashPayment(); // Call your cash payment function
+        }
+    };
+
+    const handleBarcodeKeyDown = (event) => {
+        if (event.key === "Enter") { // Check if Enter key was pressed
+            event.preventDefault(); // Prevent form submission if inside a form
+            handleBarcodeSubmit();    // Call your submit handler function
+        }
+    };
+
     // Payment Mode: 4 buttons (remove cancel item button)
     const paymentMenuButtons = [
         { label: "Cash", action: handleCashPayment },
@@ -488,7 +549,7 @@ const PosPage = () => {
                     <div style={{fontSize: '1.2rem'}}> {/* Smaller receipt ID */}
                         รหัสใบเสร็จ: {receiptId}
                     </div>
-                    <div>เงินทอน: {changeDue}</div>
+                    {paymentType === "Cash" ? <div>เงินทอน: {changeDue}</div> : <div></div>}
                     <button
                         onClick={() => window.location.reload()}
                         style={{
@@ -512,12 +573,23 @@ const PosPage = () => {
                     </div>
 
                     {isPaymentMode && paymentType === "Thai QR" ? (
-                        <div style={{ textAlign: 'center' }}>
-                            <img
-                                src={`https://promptpay.io/0927149245/${totalPrice}.png`}
-                                alt="PromptPay QR Code"
-                                style={{ maxWidth: '100%', maxHeight: '100%' }}
-                            />
+                        <div style={{textAlign: 'center'}}>
+                            <div style={{
+                                display: 'flex',
+                                flexDirection: 'column', // Align items vertically
+                                justifyContent: 'center', // Center vertically
+                                alignItems: 'center'      // Center horizontally
+                            }}>
+                                <img
+                                    src={`https://promptpay.io/${paymentGateway}/${totalPrice}.png`}
+                                    alt="PromptPay QR Code"
+                                    style={{maxWidth: '100%', maxHeight: '100%'}}
+                                />
+                                <div>{paymentGatewayName}</div>
+                                {/* No need for template literals here */}
+                                <div>{paymentGateway}</div>
+                                {/* No need for template literals here */}
+                            </div>
                             <button
                                 onClick={handleThaiQRPayment}
                                 style={{
@@ -530,7 +602,7 @@ const PosPage = () => {
                                     cursor: 'pointer'
                                 }}
                             >
-                                Submit ThaiQR
+                                ยืนยันการทำรายการ
                             </button>
                         </div>
                     ) : (
@@ -541,7 +613,7 @@ const PosPage = () => {
                             overflowY: 'auto'
                         }}>
                             {itemList.length > 0 ? itemList.map(item => (
-                                <div key={item.id} style={{ display: 'flex', alignItems: 'center', marginBottom: '5px' }}>
+                                <div key={item.id} style={{display: 'flex', alignItems: 'center', marginBottom: '5px'}}>
                                     <div style={{
                                         width: '30px',
                                         textAlign: 'center',
@@ -551,7 +623,7 @@ const PosPage = () => {
                                         {item.quantity}
                                     </div>
                                     <div style={{ marginLeft: '10px' }}>
-                                        {item.name_th} ({item.barcode})
+                                        {item.name_th}
                                         {item.quantity > 1 &&
                                             <span style={{ marginLeft: '5px' }}> (@{item.price.toFixed(2)})</span>}
                                     </div>
@@ -626,14 +698,19 @@ const PosPage = () => {
                             <div>ยอดรวม</div>
                             <div>{totalPrice.toFixed(2)}</div>
                         </div>
-                        <div style={{display: 'flex', justifyContent: 'space-between'}}>
+
+                        {paymentType === "Cash" ? <div style={{display: 'flex', justifyContent: 'space-between'}}>
                             <div>รับเงินมา</div>
                             <div>{realCash}</div>
-                        </div>
-                        <div style={{display: 'flex', justifyContent: 'space-between'}}>
-                            <div>เงินทอน</div>
+                        </div> : <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                            <div>สแกนจ่าย</div>
+                            <div>{totalPrice.toFixed(2)}</div>
+                        </div>}
+                        {/*{totalPrice.toFixed(2)}*/}
+                        {paymentType === "Cash" ? <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                        <div>เงินทอน</div>
                             <div>{changeDue}</div>
-                        </div>
+                        </div>  : <div></div>}
                     </div>
 
                     <div style={{textAlign: 'center'}}>
@@ -654,6 +731,8 @@ const PosPage = () => {
                             value={barcode}
                             onChange={handleBarcodeChange}
                             ref={barcodeInputRef}
+                            onKeyDown={handleBarcodeKeyDown} // Handles Enter key submission
+                            onPaste={handleBarcodePaste} // Auto-submit on paste
                             style={{
                                 padding: '10px',
                                 flexGrow: 1,
@@ -662,9 +741,10 @@ const PosPage = () => {
                                 border: '1px solid #ccc'
                             }}
                         />
+
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'row', gap: '20px' }}>
-                        <div style={{ flex: 2 }}>
+                    <div style={{display: 'flex', flexDirection: 'row', gap: '20px'}}>
+                        <div style={{flex: 2}}>
                             <div style={{
                                 display: 'flex',
                                 flexDirection: 'row',
@@ -757,13 +837,14 @@ const PosPage = () => {
             // Payment Mode: Cash input field, payment menu, numeric keypad remains unchanged.
             return (
                 <>
-                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
+                    <div style={{display: 'flex', alignItems: 'center', marginBottom: '10px'}}>
                         <input
                             type="text"
                             placeholder="เงินที่รับมา"
                             value={cashReceived}
                             onChange={(e) => setCashReceived(e.target.value)}
                             ref={cashInputRef}
+                            onKeyDown={handleCashReceivedKeyDown} // Add this line
                             style={{
                                 padding: '10px',
                                 flexGrow: 1,
@@ -773,8 +854,8 @@ const PosPage = () => {
                             }}
                         />
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'row', gap: '20px' }}>
-                        <div style={{ flex: 2 }}>
+                    <div style={{display: 'flex', flexDirection: 'row', gap: '20px'}}>
+                        <div style={{flex: 2}}>
                             <div style={{
                                 display: 'flex',
                                 flexDirection: 'row',
@@ -807,7 +888,7 @@ const PosPage = () => {
                                 gridTemplateColumns: 'repeat(3, 1fr)',
                                 gap: '10px'
                             }}>
-                                {[7,8,9,4,5,6,1,2,3,0,'ตกลง'].map((key, index) => (
+                                {[7,8,9,4,5,6,1,2,3,0,'.'].map((key, index) => (
                                     <button
                                         key={index}
                                         onClick={() => {

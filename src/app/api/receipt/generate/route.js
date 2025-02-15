@@ -1,14 +1,21 @@
 import { promisePool } from '../../../lib/db';
 
-export async function GET(request) {
+export async function POST(request) {
     const branchId = 9000; // Temporary branch ID
-    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const today = new Date();
+    const formattedDate = String(today.getFullYear()) +
+        String(today.getMonth() + 1).padStart(2, '0') +
+        String(today.getDate()).padStart(2, '0');
 
     try {
+
+        const { staffId } = await request.json();
+        const finalStaff = staffId+""+branchId;
+
         const [rows] = await promisePool.query(
             `SELECT receipt_id FROM Receipt
              WHERE receipt_id LIKE ? ORDER BY receipt_id DESC LIMIT 1`,
-            [`${today}${branchId}%`]
+            [`${formattedDate}${finalStaff}%`]
         );
 
         let nextNumber = '0001';
@@ -18,7 +25,7 @@ export async function GET(request) {
             nextNumber = lastNumber.toString().padStart(4, '0');
         }
 
-        const newReceiptId = `${today}${branchId}${nextNumber}`;
+        const newReceiptId = `${formattedDate}${finalStaff}${nextNumber}`;
         return new Response(JSON.stringify({ receipt_id: newReceiptId }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }

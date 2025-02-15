@@ -1,352 +1,690 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import dynamic from 'next/dynamic';
+import React, { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import BarcodeScannerComponent from "react-qr-barcode-scanner";
 
-// Dynamically import react-webcam to display the camera preview.
-const Webcam = dynamic(() => import('react-webcam'), { ssr: false });
+// Helper function to get cookie by name
+const getCookie = (name) => {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(";").shift();
+    return null;
+};
 
 const MobilePosPage = () => {
     const router = useRouter();
-    const [receiptId, setReceiptId] = useState('');
-    const [lastScannedItem, setLastScannedItem] = useState(null);
-    const [itemList, setItemList] = useState([]);
-    const [totalPrice, setTotalPrice] = useState(0);
-    const [errorMessage, setErrorMessage] = useState('');
-    const [manualBarcode, setManualBarcode] = useState('');
-    const [quantityInput, setQuantityInput] = useState(1);
-    const [showCamera, setShowCamera] = useState(false);
-    const [showMenu, setShowMenu] = useState(false);
+    const empId = getCookie("emp_id");
 
-    // Fetch receipt id on mount.
+    // Common states
+    const [receiptId, setReceiptId] = useState("");
+    const [itemList, setItemList] = useState([]); // Each item: { id, barcode, name_th, quantity, price }
+    const [totalPrice, setTotalPrice] = useState(0);
+    const [manualBarcode, setManualBarcode] = useState("");
+    const [quantityInput, setQuantityInput] = useState(1);
+    const [errorMessage, setErrorMessage] = useState("");
+
+    // Camera and scanning states
+    const [showCamera, setShowCamera] = useState(false); // Disabled by default
+    const [isWaiting, setIsWaiting] = useState(false);
+
+    // Modes: "scan", "more", "payment", "cash", "thaiQR", "result"
+    const [mode, setMode] = useState("scan");
+    const [cashReceived, setCashReceived] = useState("");
+    const [changeDue, setChangeDue] = useState(null);
+
+    // ------------------ Fetch Receipt ID ------------------
     useEffect(() => {
         const fetchReceiptId = async () => {
             try {
-                const res = await fetch('/api/receipt/generate', { method: 'GET' });
-                if (!res.ok) {
-                    console.error('Error fetching receipt id');
-                    return;
-                }
+                const res = await fetch("/api/receipt/generate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ staffId: 90002453 }),
+                });
+                if (!res.ok) throw new Error("ไม่สามารถดึงรหัสใบเสร็จได้");
                 const data = await res.json();
                 setReceiptId(data.receipt_id);
             } catch (error) {
-                console.error('Error fetching receipt id:', error);
+                console.error("Error fetching receipt ID:", error);
             }
         };
         fetchReceiptId();
     }, []);
 
-    // Update total price when itemList changes.
+    // ------------------ Update Total Price ------------------
     useEffect(() => {
-        const newTotal = itemList.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        const newTotal = itemList.reduce(
+            (sum, item) => sum + item.price * item.quantity,
+            0
+        );
         setTotalPrice(newTotal);
     }, [itemList]);
 
-    // Calculate total quantity.
-    const totalQuantity = itemList.reduce((sum, item) => sum + item.quantity, 0);
+    // ------------------ Barcode Processing ------------------
+    const handleBarcodeSubmit = async (barcodeValue) => {
+        if (!barcodeValue.trim()) return;
+        if (isWaiting) return; // Prevent duplicate scans
 
-    // Enable the camera by requesting permission from the browser.
-    const handleEnableCamera = async () => {
+        // Disable scanning & blank the screen for 1.5 sec
+        setIsWaiting(true);
+        setShowCamera(false);
+
         try {
-            await navigator.mediaDevices.getUserMedia({ video: true });
-            setShowCamera(true);
-        } catch (err) {
-            console.error("Error enabling camera:", err);
+            const res = await fetch(`/api/product/get?barcode=${barcodeValue}`, {
+                method: "GET",
+            });
+            if (!res.ok) {
+                setErrorMessage("ไม่พบสินค้า");
+                setTimeout(() => setErrorMessage(""), 3000);
+                setTimeout(() => {
+                    setIsWaiting(false);
+                    setShowCamera(false);
+                }, 1500);
+                return;
+            }
+            const product = await res.json();
+            const newItem = {
+                id: itemList.length + 1,
+                barcode: barcodeValue,
+                name_th: product.name_th,
+                quantity: parseInt(quantityInput, 10) || 1,
+                price: parseFloat(product.price),
+            };
+            setItemList((prev) => [...prev, newItem]);
+            setManualBarcode("");
+            setQuantityInput(1);
+        } catch (error) {
+            console.error("Error fetching product:", error);
+        }
+        // Re-enable scanning after waiting period (camera remains off by default)
+        setTimeout(() => {
+            setIsWaiting(false);
+            setShowCamera(false);
+        }, 1500);
+    };
+
+    // ------------------ Camera Scan Handler ------------------
+    const handleScan = useCallback(
+        (err, result) => {
+            if (result && !isWaiting) {
+                console.log("Scanned barcode:", result.text);
+                handleBarcodeSubmit(result.text);
+            }
+        },
+        [isWaiting]
+    );
+
+    // ------------------ Quantity Handlers (desktop style) ------------------
+    const increaseQuantity = () => {
+        setQuantityInput((prev) => parseInt(prev, 10) + 1);
+    };
+    const decreaseQuantity = () => {
+        setQuantityInput((prev) => Math.max(1, parseInt(prev, 10) - 1));
+    };
+
+    // ------------------ Manual Barcode Input ------------------
+    const handleManualBarcodeKeyDown = (e) => {
+        if (e.key === "Enter") {
+            handleBarcodeSubmit(manualBarcode);
         }
     };
 
-    // Dummy handler: simulate a camera scan when "Capture Barcode" is tapped.
-    const handleCameraCapture = async () => {
-        const simulatedBarcode = "1234567890";
-        console.log("Camera scanned barcode:", simulatedBarcode);
-        await handleBarcodeSubmit(simulatedBarcode);
+    // ------------------ Checkout and Payment Handlers ------------------
+    const handleCheckout = () => {
+        if (totalPrice <= 0) {
+            setErrorMessage("ยังไม่มีรายการสินค้า");
+            setTimeout(() => setErrorMessage(""), 3000);
+            return;
+        }
+        setMode("payment");
     };
 
-    // Submit a barcode (from camera capture or manual input) and log the scanned item.
-    const handleBarcodeSubmit = async (barcodeValue) => {
-        if (barcodeValue.trim() !== "") {
-            try {
-                const res = await fetch(`/api/product/get?barcode=${barcodeValue}`, { method: 'GET' });
-                if (!res.ok) {
-                    setErrorMessage("Product not found");
-                    setTimeout(() => setErrorMessage(""), 3000);
+    // Cash Payment Handler (contact database immediately)
+    const handleCashPayment = async () => {
+        setErrorMessage("กำลังติดต่อกับระบบฐานข้อมูล CityRetails... | อาจใช้เวลาสักครู่");
+        const cash = parseFloat(cashReceived) || 0;
+        if (cash < totalPrice) {
+            setErrorMessage("จำนวนเงินที่รับมาน้อยกว่าราคารวม");
+            return;
+        }
+        try {
+            let trans_id;
+            const transRes = await fetch("/api/transaction/create", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    emp_id: empId,
+                    branch_id: 9000,
+                    total_price: totalPrice,
+                    status: "completed",
+                    payment_type: "Cash",
+                }),
+            });
+            if (!transRes.ok) {
+                const errorData = await transRes.json();
+                setErrorMessage(errorData.error || "สร้างรายการธุรกรรมล้มเหลว");
+                return;
+            }
+            const transData = await transRes.json();
+            trans_id = transData.trans_id;
+
+            const receiptRes = await fetch("/api/receipt/create", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    receipt_id: receiptId,
+                    trans_id: trans_id,
+                    branch_id: 9000,
+                    issue_date: new Date().toISOString().slice(0, 10),
+                }),
+            });
+            if (!receiptRes.ok) {
+                const errorData = await receiptRes.json();
+                setErrorMessage(errorData.error || "สร้างใบเสร็จล้มเหลว");
+                return;
+            }
+
+            for (const item of itemList) {
+                const receiptItemRes = await fetch("/api/receipt_item/create", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        receipt_id: receiptId,
+                        prod_id: item.barcode,
+                        quantity: item.quantity,
+                        price_each: item.price,
+                    }),
+                });
+                if (!receiptItemRes.ok) {
+                    const errorData = await receiptItemRes.json();
+                    setErrorMessage(errorData.error || `สร้างรายการสินค้าในใบเสร็จล้มเหลวสำหรับ ${item.barcode}`);
                     return;
                 }
-                const product = await res.json();
-                const newItem = {
-                    id: itemList.length + 1,
-                    name_th: product.name_th,
-                    quantity: parseInt(quantityInput, 10) || 1,
-                    price: parseFloat(product.price)
-                };
-                console.log("Scanned item:", newItem);
-                setLastScannedItem(newItem);
-                setItemList([...itemList, newItem]);
-                setManualBarcode('');
-                setQuantityInput(1);
-            } catch (error) {
-                console.error('Error fetching product:', error);
+                const transItemRes = await fetch("/api/transaction_item/create", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        trans_id: trans_id,
+                        prod_id: item.barcode,
+                        quantity: item.quantity,
+                        price_each: item.price,
+                    }),
+                });
+                if (!transItemRes.ok) {
+                    const errorData = await transItemRes.json();
+                    setErrorMessage(errorData.error || `สร้างรายการสินค้าในธุรกรรมล้มเหลวสำหรับ ${item.barcode}`);
+                    return;
+                }
+                const stockRes = await fetch("/api/product/updateStock", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        prod_id: item.barcode,
+                        quantity: item.quantity,
+                        branch_id: 9000,
+                    }),
+                });
+                if (!stockRes.ok) {
+                    const errorData = await stockRes.json();
+                    setErrorMessage(errorData.error || `อัปเดตสต็อกล้มเหลวสำหรับ ${item.barcode}`);
+                    return;
+                }
             }
+
+            const shiftRes = await fetch("/api/shift/update", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    date: new Date().toISOString().slice(0, 10),
+                    emp_id: empId,
+                    increment: totalPrice,
+                }),
+            });
+            if (!shiftRes.ok) {
+                const errorData = await shiftRes.json();
+                setErrorMessage(errorData.error || "อัปเดตกะการทำงานล้มเหลว");
+                return;
+            }
+
+            setChangeDue((cash - totalPrice).toFixed(2));
+            setMode("cash");
+        } catch (error) {
+            console.error("Error processing Cash payment:", error);
+            setErrorMessage(error.message || "เกิดข้อผิดพลาดในการชำระเงิน");
         }
     };
 
-    // Manual input submit handler.
-    const handleManualSubmit = async () => {
-        await handleBarcodeSubmit(manualBarcode);
+    // When user clicks Thai QR in Payment mode, simply switch to QR page.
+    const handleThaiQRPayment = () => {
+        setMode("thaiQR");
     };
 
-    // Trigger submission when the Enter key is pressed.
-    const handleManualKeyDown = async (e) => {
-        if (e.key === 'Enter') {
-            await handleManualSubmit();
+    // On the Thai QR page, when user clicks success, then contact the database.
+    const submitThaiQRPayment = async () => {
+        setErrorMessage("กำลังติดต่อกับระบบฐานข้อมูล CityRetails... | อาจใช้เวลาสักครู่");
+        try {
+            let trans_id;
+            const transRes = await fetch("/api/transaction/create", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    emp_id: empId,
+                    branch_id: 9000,
+                    total_price: totalPrice,
+                    status: "completed",
+                    payment_type: "Thai QR",
+                }),
+            });
+            if (!transRes.ok) {
+                const errorData = await transRes.json();
+                setErrorMessage(errorData.error || "สร้างรายการธุรกรรมล้มเหลว");
+                return;
+            }
+            const transData = await transRes.json();
+            trans_id = transData.trans_id;
+
+            const receiptRes = await fetch("/api/receipt/create", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    receipt_id: receiptId,
+                    trans_id: trans_id,
+                    branch_id: 9000,
+                    issue_date: new Date().toISOString().slice(0, 10),
+                }),
+            });
+            if (!receiptRes.ok) {
+                const errorData = await receiptRes.json();
+                setErrorMessage(errorData.error || "สร้างใบเสร็จล้มเหลว");
+                return;
+            }
+
+            for (const item of itemList) {
+                const receiptItemRes = await fetch("/api/receipt_item/create", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        receipt_id: receiptId,
+                        prod_id: item.barcode,
+                        quantity: item.quantity,
+                        price_each: item.price,
+                    }),
+                });
+                if (!receiptItemRes.ok) {
+                    const errorData = await receiptItemRes.json();
+                    setErrorMessage(errorData.error || `สร้างรายการสินค้าในใบเสร็จล้มเหลวสำหรับ ${item.barcode}`);
+                    return;
+                }
+                const transItemRes = await fetch("/api/transaction_item/create", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        trans_id: trans_id,
+                        prod_id: item.barcode,
+                        quantity: item.quantity,
+                        price_each: item.price,
+                    }),
+                });
+                if (!transItemRes.ok) {
+                    const errorData = await transItemRes.json();
+                    setErrorMessage(errorData.error || `สร้างรายการสินค้าในธุรกรรมล้มเหลวสำหรับ ${item.barcode}`);
+                    return;
+                }
+                const stockRes = await fetch("/api/product/updateStock", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        prod_id: item.barcode,
+                        quantity: item.quantity,
+                        branch_id: 9000,
+                    }),
+                });
+                if (!stockRes.ok) {
+                    const errorData = await stockRes.json();
+                    setErrorMessage(errorData.error || `อัปเดตสต็อกล้มเหลวสำหรับ ${item.barcode}`);
+                    return;
+                }
+            }
+            setErrorMessage("การทำรายการเสร็จสิ้น");
+            setChangeDue("0.00");
+            setMode("result");
+        } catch (error) {
+            console.error("Error processing ThaiQR payment:", error);
+            setErrorMessage(error.message || "เกิดข้อผิดพลาดในการชำระเงินด้วย Thai QR");
         }
     };
 
-    // Handlers for quantity input changes and up/down arrow clicks.
-    const handleQuantityInputChange = (e) => {
-        setQuantityInput(e.target.value);
+    const handleRefresh = () => {
+        window.location.reload();
     };
 
-    const increaseQuantity = () => {
-        setQuantityInput((prev) => Math.max(1, parseInt(prev, 10) || 1) + 1);
-    };
+    // ------------------ RENDER FUNCTIONS ------------------
 
-    const decreaseQuantity = () => {
-        setQuantityInput((prev) => Math.max(1, (parseInt(prev, 10) || 1) - 1));
-    };
-
-    // Dummy order submission handler.
-    const handleSubmitOrder = () => {
-        console.log("Order Submitted:", {
-            receiptId,
-            items: itemList,
-            totalPrice
-        });
-    };
-
-    // Define the 8 menu buttons. Void Bill and Logout buttons are styled red.
-    const menuButtons = [
-        { label: "เช็คราคาสินค้า", path: "/employee/enquiry" },
-        { label: "คืนสินค้า (Void)", action: () => alert("Void Bill"), style: { backgroundColor: 'red' } },
-        { label: "พักบิล", action: () => alert("Hold Bill") },
-        { label: "ออกจากระบบ", action: () => { /* logout logic */ }, style: { backgroundColor: 'red' } },
-        { label: "เรียกรายการพักบิล", action: () => alert("Call Hold Bill") },
-        { label: "ยกเลิกบิลนี้", action: () => setItemList([]) },
-        { label: "สินค้าอื่นๆ", action: () => alert("Other Items") },
-    ];
-
-    // When showMenu is true, collapse everything else and show only the menu.
-    if (showMenu) {
-        return (
-            <div style={{ height: '100vh', overflowY: 'auto', padding: '20px', textAlign: 'center' }}>
-                <button
-                    onClick={() => setShowMenu(false)}
-                    style={{
-                        padding: '10px 20px',
-                        borderRadius: '5px',
-                        border: 'none',
-                        backgroundColor: '#333',
-                        color: 'white',
-                        cursor: 'pointer',
-                        marginBottom: '20px'
-                    }}
-                >
-                    Hide Menu
-                </button>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center' }}>
-                    {menuButtons.map((button, index) => (
-                        <button
-                            key={index}
-                            onClick={button.action || (() => router.push(button.path || ''))}
-                            style={{
-                                flex: '1 1 calc(50% - 10px)',
-                                padding: '10px',
-                                borderRadius: '5px',
-                                border: 'none',
-                                cursor: 'pointer',
-                                backgroundColor: button.style?.backgroundColor || '#333',
-                                color: 'white'
-                            }}
-                        >
-                            {button.label}
-                        </button>
-                    ))}
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <div style={{ height: '100vh', overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '20px' }}>
-            {/* Top Bar with Show Menu Button */}
-            <div style={{ textAlign: 'center', marginBottom: '10px' }}>
-                <button
-                    onClick={() => setShowMenu(true)}
-                    style={{
-                        padding: '10px 20px',
-                        borderRadius: '5px',
-                        border: 'none',
-                        backgroundColor: '#333',
-                        color: 'white',
-                        cursor: 'pointer'
-                    }}
-                >
-                    Show Menu
-                </button>
-            </div>
-
-            {/* Receipt ID */}
-            <div style={{ textAlign: 'center', marginBottom: '10px', fontSize: '1.2rem', fontWeight: 'bold' }}>
+    // Scan Mode UI
+    const renderScanMode = () => (
+        <div style={{ padding: "20px", textAlign: "center" }}>
+            <div style={{ fontSize: "1.2rem", fontWeight: "bold", marginBottom: "10px" }}>
                 รหัสใบเสร็จ: {receiptId}
             </div>
-
-            {/* Camera Section */}
-            <div style={{ marginBottom: '20px', textAlign: 'center' }}>
-                {showCamera ? (
-                    <>
-                        <Webcam
-                            audio={false}
-                            videoConstraints={{ facingMode: 'environment' }}
-                            style={{ width: '100%', maxWidth: '300px', height: '200px', objectFit: 'cover', margin: '0 auto' }}
-                        />
-                        <button
-                            onClick={handleCameraCapture}
-                            style={{
-                                marginTop: '10px',
-                                padding: '10px 20px',
-                                borderRadius: '5px',
-                                border: 'none',
-                                backgroundColor: '#4CAF50',
-                                color: 'white',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            Capture Barcode
-                        </button>
-                    </>
+            <div style={{ marginBottom: "10px" }}>
+                รวม: {totalPrice.toFixed(2)} ({itemList.reduce((sum, item) => sum + item.quantity, 0)} รายการ)
+            </div>
+            {/* Camera section */}
+            <div style={{ marginBottom: "20px" }}>
+                {isWaiting ? (
+                    <div style={{ width: "100%", height: "200px", backgroundColor: "black" }}></div>
+                ) : showCamera ? (
+                    <BarcodeScannerComponent
+                        width={300}
+                        height={200}
+                        onUpdate={handleScan}
+                        onError={(err) => console.error("Scanner error:", err)}
+                    />
                 ) : (
                     <button
-                        onClick={handleEnableCamera}
+                        onClick={() => setShowCamera(true)}
                         style={{
-                            padding: '10px 20px',
-                            borderRadius: '5px',
-                            border: 'none',
-                            backgroundColor: '#4CAF50',
-                            color: 'white',
-                            cursor: 'pointer'
+                            padding: "10px 20px",
+                            borderRadius: "5px",
+                            backgroundColor: "#4CAF50",
+                            color: "white",
                         }}
                     >
-                        Enable Camera
+                        เปิดกล้องสแกนบาร์โค้ด
                     </button>
                 )}
             </div>
-
-            {/* Manual Barcode Input and Quantity Adder */}
-            <div style={{ marginBottom: '20px', textAlign: 'center' }}>
+            {/* Manual barcode input */}
+            <div style={{ marginBottom: "10px" }}>
                 <input
                     type="text"
-                    placeholder="Enter barcode manually"
+                    placeholder="กรอกบาร์โค้ดด้วยตนเอง"
                     value={manualBarcode}
                     onChange={(e) => setManualBarcode(e.target.value)}
-                    onKeyDown={handleManualKeyDown}
+                    onKeyDown={handleManualBarcodeKeyDown}
                     style={{
-                        padding: '10px',
-                        width: '60%',
-                        borderRadius: '5px',
-                        border: '1px solid #ccc'
+                        padding: "10px",
+                        width: "60%",
+                        borderRadius: "5px",
+                        border: "1px solid #ccc",
                     }}
                 />
                 <button
-                    onClick={handleManualSubmit}
+                    onClick={() => handleBarcodeSubmit(manualBarcode)}
                     style={{
-                        marginLeft: '10px',
-                        padding: '10px 20px',
-                        borderRadius: '5px',
-                        border: 'none',
-                        backgroundColor: '#4CAF50',
-                        color: 'white',
-                        cursor: 'pointer'
+                        marginLeft: "10px",
+                        padding: "10px 20px",
+                        borderRadius: "5px",
+                        backgroundColor: "#4CAF50",
+                        color: "white",
                     }}
                 >
                     ตกลง
                 </button>
-                {/* Quantity Adder */}
-                <div style={{ marginTop: '10px', display: 'inline-flex', alignItems: 'center', border: '1px solid #ccc', borderRadius: '5px' }}>
-                    <span style={{ padding: '5px' }}>จำนวน:</span>
-                    <input
-                        type="number"
-                        value={quantityInput}
-                        onChange={handleQuantityInputChange}
-                        style={{
-                            padding: '5px',
-                            width: '50px',
-                            textAlign: 'center',
-                            border: 'none'
-                        }}
-                        min="1"
-                    />
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span
-                onClick={increaseQuantity}
-                style={{
-                    padding: '2px',
-                    cursor: 'pointer',
-                    backgroundColor: '#90EE90',
-                    borderRadius: '3px 3px 0 0',
-                    fontSize: '0.8rem'
-                }}
-            >
-              ▲
-            </span>
-                        <span
-                            onClick={decreaseQuantity}
-                            style={{
-                                padding: '2px',
-                                cursor: 'pointer',
-                                backgroundColor: '#FF6347',
-                                borderRadius: '0 0 3px 3px',
-                                fontSize: '0.8rem'
-                            }}
-                        >
-              ▼
-            </span>
-                    </div>
-                </div>
             </div>
+            {/* Quantity input (desktop style) */}
 
-            {/* Latest Scanned Item */}
-            {lastScannedItem && (
-                <div style={{ marginBottom: '10px', textAlign: 'center' }}>
-                    <div>{lastScannedItem.name_th}</div>
-                    <div>ราคา: {lastScannedItem.price.toFixed(2)}</div>
-                    <div>จำนวน: {lastScannedItem.quantity}</div>
-                </div>
-            )}
-
-            {/* Total Price and Quantity */}
-            <div style={{ textAlign: 'center', marginBottom: '20px', fontSize: '1.5rem' }}>
-                รวม: {totalPrice.toFixed(2)} ({totalQuantity} items)
-            </div>
-
-            {/* Submit Order Button */}
-            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+            {/* More menu button */}
+            <div style={{ marginBottom: "20px" }}>
                 <button
-                    onClick={handleSubmitOrder}
+                    onClick={() => setMode("more")}
                     style={{
-                        padding: '10px 20px',
-                        borderRadius: '5px',
-                        border: 'none',
-                        backgroundColor: '#4CAF50',
-                        color: 'white',
-                        cursor: 'pointer'
+                        padding: "10px 20px",
+                        borderRadius: "5px",
+                        backgroundColor: "#333",
+                        color: "white",
                     }}
                 >
-                    ตกลง
+                    เมนูเพิ่มเติม
+                </button>
+            </div>
+            {/* Checkout button */}
+            <div>
+                <button
+                    onClick={handleCheckout}
+                    style={{
+                        padding: "10px 20px",
+                        borderRadius: "5px",
+                        backgroundColor: "#4CAF50",
+                        color: "white",
+                    }}
+                >
+                    รวมยอด
+                </button>
+            </div>
+            {errorMessage && <div style={{ color: "red", marginTop: "10px" }}>{errorMessage}</div>}
+        </div>
+    );
+
+    // More Menu UI (2-column layout for 7 options)
+    const renderMoreMenu = () => (
+        <div style={{ padding: "20px" }}>
+            <div style={{ textAlign: "center", marginBottom: "20px", fontSize: "1.2rem", fontWeight: "bold" }}>
+                เมนูเพิ่มเติม
+            </div>
+            <div
+                style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(2, 1fr)",
+                    gap: "10px",
+                    marginBottom: "20px",
+                }}
+            >
+                {[
+                    { label: "เช็คราคาสินค้า", action: () => alert("เช็คราคาสินค้า") },
+                    { label: "คืนสินค้า (Void)", action: () => alert("คืนสินค้า (Void)") },
+                    { label: "พักบิล", action: () => alert("พักบิล") },
+                    { label: "ออกจากระบบ", action: () => alert("ออกจากระบบ") },
+                    { label: "เรียกรายการพักบิล", action: () => alert("เรียกรายการพักบิล") },
+                    { label: "ยกเลิกบิลนี้", action: () => setItemList([]) },
+                    { label: "สินค้าอื่นๆ", action: () => alert("สินค้าอื่นๆ") },
+                ].map((btn, idx) => (
+                    <button
+                        key={idx}
+                        onClick={btn.action}
+                        style={{
+                            padding: "10px",
+                            borderRadius: "5px",
+                            backgroundColor: "#555",
+                            color: "white",
+                        }}
+                    >
+                        {btn.label}
+                    </button>
+                ))}
+            </div>
+            <div style={{ textAlign: "center" }}>
+                <button
+                    onClick={() => setMode("scan")}
+                    style={{
+                        padding: "10px 20px",
+                        borderRadius: "5px",
+                        backgroundColor: "#FF6347",
+                        color: "white",
+                    }}
+                >
+                    กลับสู่การสแกน
                 </button>
             </div>
         </div>
     );
+
+    // Payment Mode UI
+    const renderPaymentMode = () => (
+        <div style={{ padding: "20px", textAlign: "center" }}>
+            <div style={{ fontSize: "1.2rem", fontWeight: "bold", marginBottom: "10px" }}>
+                รหัสใบเสร็จ: {receiptId}
+            </div>
+            <div style={{ marginBottom: "20px" }}>ยอดรวม: {totalPrice.toFixed(2)}</div>
+            <div style={{ marginBottom: "20px" }}>
+                <input
+                    type="text"
+                    placeholder="จำนวนเงินที่รับมา"
+                    value={cashReceived}
+                    onChange={(e) => setCashReceived(e.target.value)}
+                    style={{
+                        padding: "10px",
+                        width: "60%",
+                        borderRadius: "5px",
+                        border: "1px solid #ccc",
+                    }}
+                />
+            </div>
+            <div style={{ display: "flex", justifyContent: "center", gap: "10px", marginBottom: "20px" }}>
+                <button
+                    onClick={handleCashPayment}
+                    style={{
+                        padding: "10px 20px",
+                        borderRadius: "5px",
+                        backgroundColor: "#4CAF50",
+                        color: "white",
+                    }}
+                >
+                    เงินสด
+                </button>
+                <button
+                    onClick={handleThaiQRPayment}
+                    style={{
+                        padding: "10px 20px",
+                        borderRadius: "5px",
+                        backgroundColor: "#4CAF50",
+                        color: "white",
+                    }}
+                >
+                    Thai QR
+                </button>
+                <button
+                    onClick={() => alert("คูปอง ยังไม่สามารถใช้งานได้")}
+                    style={{
+                        padding: "10px 20px",
+                        borderRadius: "5px",
+                        backgroundColor: "#4CAF50",
+                        color: "white",
+                    }}
+                >
+                    คูปอง
+                </button>
+            </div>
+            <div>
+                <button
+                    onClick={() => setMode("scan")}
+                    style={{
+                        padding: "10px 20px",
+                        borderRadius: "5px",
+                        backgroundColor: "#FF6347",
+                        color: "white",
+                    }}
+                >
+                    กลับสู่การสแกน
+                </button>
+            </div>
+            {errorMessage && <div style={{ color: "red", marginTop: "10px" }}>{errorMessage}</div>}
+        </div>
+    );
+
+    // Cash Payment Result UI
+    const renderCashResult = () => (
+        <div style={{ padding: "20px", textAlign: "center" }}>
+            <div style={{ fontSize: "1.2rem", fontWeight: "bold", marginBottom: "10px" }}>
+                รหัสใบเสร็จ: {receiptId}
+            </div>
+            <div style={{ marginBottom: "20px" }}>เงินทอน: {changeDue}</div>
+            <div>
+                <button
+                    onClick={handleRefresh}
+                    style={{
+                        padding: "10px 20px",
+                        borderRadius: "5px",
+                        backgroundColor: "#4CAF50",
+                        color: "white",
+                    }}
+                >
+                    ทำรายการอื่นต่อ
+                </button>
+            </div>
+        </div>
+    );
+
+    // Thai QR Payment UI (database is contacted only after clicking success)
+    const renderThaiQRMode = () => (
+        <div style={{ padding: "20px", textAlign: "center" }}>
+            <div style={{ fontSize: "1.2rem", fontWeight: "bold", marginBottom: "10px" }}>
+                รหัสใบเสร็จ: {receiptId}
+            </div>
+            <div style={{ marginBottom: "20px" }}>ยอดรวม: {totalPrice.toFixed(2)}</div>
+            <div style={{ marginBottom: "20px" }}>
+                <img
+                    src={`https://promptpay.io/1103400083485/${totalPrice}.png`}
+                    alt="PromptPay QR Code"
+                    style={{ maxWidth: "80%", height: "auto" }}
+                />
+            </div>
+            <div style={{ marginBottom: "20px" }}>
+                <div>พงศ์ศิริ เลิศพงษ์ไทย</div>
+                <div>1103400083485</div>
+            </div>
+            <div>
+                <button
+                    onClick={submitThaiQRPayment}
+                    style={{
+                        padding: "10px 20px",
+                        borderRadius: "5px",
+                        backgroundColor: "#4CAF50",
+                        color: "white",
+                    }}
+                >
+                    ยืนยันการทำรายการ
+                </button>
+            </div>
+            {errorMessage && <div style={{ color: "red", marginTop: "10px" }}>{errorMessage}</div>}
+        </div>
+    );
+
+    // Transaction Result UI
+    const renderResultMode = () => (
+        <div style={{ padding: "20px", textAlign: "center" }}>
+            <div style={{ fontSize: "1.2rem", fontWeight: "bold", marginBottom: "20px" }}>
+                บันทึกการทำรายการแล้ว
+            </div>
+            <div style={{ marginBottom: "20px" }}>รหัสใบเสร็จ: {receiptId}</div>
+            <div>
+                <button
+                    onClick={handleRefresh}
+                    style={{
+                        padding: "10px 20px",
+                        borderRadius: "5px",
+                        backgroundColor: "#4CAF50",
+                        color: "white",
+                    }}
+                >
+                    ทำรายการใหม่
+                </button>
+            </div>
+        </div>
+    );
+
+    // Main render based on mode
+    const renderContent = () => {
+        switch (mode) {
+            case "scan":
+                return renderScanMode();
+            case "more":
+                return renderMoreMenu();
+            case "payment":
+                return renderPaymentMode();
+            case "cash":
+                return renderCashResult();
+            case "thaiQR":
+                return renderThaiQRMode();
+            case "result":
+                return renderResultMode();
+            default:
+                return renderScanMode();
+        }
+    };
+
+    return <div style={{ height: "100vh", overflowY: "auto" }}>{renderContent()}</div>;
 };
 
 export default MobilePosPage;
