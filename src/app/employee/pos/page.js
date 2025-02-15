@@ -16,11 +16,61 @@ const getCookie = (name) => {
 
 const PosPage = () => {
 
+    const [user, setUser] = useState(null);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+    const handleLogout = () => {
+        document.cookie = "emp_id=; path=/; max-age=0";
+        document.cookie = "firstName=; path=/; max-age=0";
+        document.cookie = "lastName=; path=/; max-age=0";
+        document.cookie = "employeeType=; path=/; max-age=0";
+        document.cookie = "avatarUrl=; path=/; max-age=0";
+
+        setUser(null);
+        setIsLoggedIn(false);
+        router.push("/login");
+    };
+
+    const printReceipt = () => {
+        // Get the receipt content
+        const printContents = document.getElementById("receipt-print").innerHTML;
+        // Open a new window
+        const printWindow = window.open('', '', 'width=600,height=600');
+        // Write the receipt content into the new window, along with basic styling
+        printWindow.document.write(`
+        <html>
+            <head>
+                <title>Print Receipt</title>
+                <style>
+                    body {
+                        font-family: monospace;
+                        font-size: 14px;
+                        margin: 20px;
+                    }
+                </style>
+            </head>
+            <body>
+                ${printContents}
+            </body>
+        </html>
+    `);
+        printWindow.document.close();
+        printWindow.focus();
+        // Trigger the print dialog
+        printWindow.print();
+        // Close the window after printing
+        printWindow.close();
+    };
+
+
+
     const handleBarcodePaste = (e) => {
+        setErrorMessage("กำลังติดต่อกับระบบฐานข้อมูล CityRetails... | อาจใช้เวลาสักครู่");
         e.preventDefault(); // Prevent the default paste behavior
         const pastedData = e.clipboardData.getData('Text'); // Get pasted data
         setBarcode(pastedData); // Update the barcode state
         handleBarcodeSubmit(pastedData); // Automatically submit the pasted barcode
+        setErrorMessage("");
     };
 
 
@@ -389,6 +439,7 @@ const PosPage = () => {
     };
 
     const handleBarcodeSubmit = async (submittedBarcode) => {
+        setErrorMessage("กำลังติดต่อกับระบบฐานข้อมูล CityRetails... | อาจใช้เวลาสักครู่");
         const barcodeToSubmit = submittedBarcode || barcode;
         if (barcodeToSubmit.trim() !== "") {
             const quantityToUse = parseInt(quantityInput, 10) || 1;
@@ -418,6 +469,7 @@ const PosPage = () => {
                 console.error('Error fetching product:', error);
             }
         }
+        setErrorMessage("");
     };
 
 
@@ -456,12 +508,12 @@ const PosPage = () => {
     // Scanning Mode: Original 8 buttons with quantity control.
     const scanningMenuButtons = [
         { label: "เช็คราคาสินค้า", path: "/employee/enquiry" },
-        { label: "คืนสินค้า (Void)", action: () => alert("Void Bill") },
-        { label: "พักบิล", action: () => alert("Hold Bill") },
-        { label: "ออกจากระบบ", action: () => { /* add logout logic if needed */ } },
-        { label: "เรียกรายการพักบิล", action: () => alert("Call Hold Bill") },
+        { label: "คืนสินค้า (Void)", path: "/employee/pos/void" },
+        { label: "พักบิล", action: () => alert("ฟีเจอร์พักบิลยังเขียนไม่เสร็จ") },
+        { label: "ออกจากระบบ", action: () => handleLogout() },
+        { label: "เรียกรายการพักบิล", action: () => alert("ฟีเจอร์เรียกพักบิลยังเขียนไม่เสร็จ") },
         { label: "ยกเลิกบิลนี้", action: () => setItemList([]) },
-        { label: "สินค้าอื่นๆ", action: () => alert("Other Items") },
+        { label: "สินค้าอื่นๆ", action: () => alert("ฟีเจอร์สินค้าอื่นๆ ยังเขียนไม่เสร็จ") },
         {
             label: (
                 <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -655,69 +707,99 @@ const PosPage = () => {
         if (changeDue !== null) { // Show receipt
             return (
                 <div style={{
+                    position: 'relative', // Container for absolute positioning
                     border: '1px solid #ccc',
                     padding: '10px',
-                    height: '100%',
+                    height: '90%',
                     overflowY: 'auto',
                     width: '100%',
                     fontFamily: 'monospace',
                     fontSize: '14px'
                 }}>
-                    <div style={{textAlign: 'center', marginBottom: '10px'}}>
-                        ร้าน รัตนารวมโชค ({9000})<br/>
-                        สาขา {'พระจอมเกล้าพระนครเหนือ' || "ไม่ระบุ"}<br/>
-                        {/* Format date and time: DD/MM/YYYY | HH:MM:SS */}
-                        {new Date().toLocaleDateString('th-TH', {day: '2-digit', month: '2-digit', year: 'numeric'})} | {new Date().toLocaleTimeString('th-TH', {
+                    {/* Smaller Print Button in the top-right corner */}
+                    <button
+                        onClick={printReceipt}
+                        style={{
+                            position: 'absolute',
+                            top: '5px',
+                            right: '5px',
+                            backgroundColor: '#4CAF50',
+                            color: 'white',
+                            padding: '3px 6px',
+                            borderRadius: '3px',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '0.75rem',
+                            width: '50px'
+                        }}
+                    >
+                        Print
+                    </button>
+
+                    {/* Receipt Content Wrapped for Printing */}
+                    <div id="receipt-print">
+                        <div style={{textAlign: 'center', marginBottom: '10px'}}>
+                            ร้าน รัตนารวมโชค ({9000})<br/>
+                            สาขา {'พระจอมเกล้าพระนครเหนือ' || "ไม่ระบุ"}<br/>
+                            {new Date().toLocaleDateString('th-TH', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric'
+                            })} | {new Date().toLocaleTimeString('th-TH', {
                             hour: '2-digit',
                             minute: '2-digit',
                             second: '2-digit',
                             hour12: false
-                        })}<br/><br/> {/* 24-hour format */}
-                        Bill {receiptId} | User {empId}
-                    </div>
-
-                    <div style={{marginBottom: '10px'}}>
-                        {itemList.map(item => (
-                            <div key={item.id} style={{display: 'flex', marginBottom: '5px'}}>
-                                <div style={{width: '40px', textAlign: 'right'}}>{item.quantity}</div>
-                                <div style={{flexGrow: 1, marginLeft: '10px'}}>
-                                    {item.name_th}
-                                    {item.quantity > 1 &&
-                                        <span style={{marginLeft: '5px'}}>(@{item.price.toFixed(2)})</span>}
-                                </div>
-                                <div style={{
-                                    width: '60px',
-                                    textAlign: 'right'
-                                }}>{(item.price * item.quantity).toFixed(2)}</div>
-                            </div>
-                        ))}
-                    </div>
-
-                    <div style={{borderTop: '1px dashed #ccc', paddingTop: '10px', marginBottom: '10px'}}>
-                        <div style={{display: 'flex', justifyContent: 'space-between'}}>
-                            <div>ยอดรวม</div>
-                            <div>{totalPrice.toFixed(2)}</div>
+                        })}<br/><br/>
+                            Bill {receiptId} | User {empId}
                         </div>
 
-                        {paymentType === "Cash" ? <div style={{display: 'flex', justifyContent: 'space-between'}}>
-                            <div>รับเงินมา</div>
-                            <div>{realCash}</div>
-                        </div> : <div style={{display: 'flex', justifyContent: 'space-between'}}>
-                            <div>สแกนจ่าย</div>
-                            <div>{totalPrice.toFixed(2)}</div>
-                        </div>}
-                        {/*{totalPrice.toFixed(2)}*/}
-                        {paymentType === "Cash" ? <div style={{display: 'flex', justifyContent: 'space-between'}}>
-                        <div>เงินทอน</div>
-                            <div>{changeDue}</div>
-                        </div>  : <div></div>}
+                        <div style={{marginBottom: '10px'}}>
+                            {itemList.map(item => (
+                                <div key={item.id} style={{display: 'flex', marginBottom: '5px'}}>
+                                    <div style={{width: '40px', textAlign: 'right'}}>{item.quantity}</div>
+                                    <div style={{flexGrow: 1, marginLeft: '10px'}}>
+                                        {item.name_th}
+                                        {item.quantity > 1 &&
+                                            <span style={{marginLeft: '5px'}}>(@{item.price.toFixed(2)})</span>}
+                                    </div>
+                                    <div style={{
+                                        width: '60px',
+                                        textAlign: 'right'
+                                    }}>{(item.price * item.quantity).toFixed(2)}</div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div style={{borderTop: '1px dashed #ccc', paddingTop: '10px', marginBottom: '10px'}}>
+                            <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                                <div>ยอดรวม</div>
+                                <div>{totalPrice.toFixed(2)}</div>
+                            </div>
+
+                            {paymentType === "Cash" ? (
+                                <>
+                                    <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                                        <div>รับเงินมา</div>
+                                        <div>{realCash}</div>
+                                    </div>
+                                    <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                                        <div>เงินทอน</div>
+                                        <div>{changeDue}</div>
+                                    </div>
+                                </>
+                            ) : (
+                                <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                                    <div>สแกนจ่าย</div>
+                                    <div>{totalPrice.toFixed(2)}</div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div style={{textAlign: 'center'}}>
+                            *** ขอบคุณที่ใช้บริการ ***
+                        </div>
                     </div>
-
-                    <div style={{textAlign: 'center'}}>
-                        *** ขอบคุณที่ใช้บริการ ***
-                    </div>
-
-
                 </div>
             );
         } else if (!isPaymentMode && changeDue === null) {
@@ -764,7 +846,7 @@ const PosPage = () => {
                                             cursor: 'pointer',
                                             backgroundColor: '#333',
                                             color: 'white',
-                                            ...(button.label === "คืนสินค้า (Void)" || button.label === "ออกจากระบบ" ? { backgroundColor: 'red' } : {})
+                                            ...(button.label === "คืนสินค้า (Void)" || button.label === "ออกจากระบบ" ? {backgroundColor: 'red'} : {})
                                         }}
                                     >
                                         {button.label}
@@ -772,13 +854,13 @@ const PosPage = () => {
                                 ))}
                             </div>
                         </div>
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                        <div style={{flex: 1, display: 'flex', flexDirection: 'column'}}>
                             <div style={{
                                 display: 'grid',
                                 gridTemplateColumns: 'repeat(3, 1fr)',
                                 gap: '10px'
                             }}>
-                                {[7,8,9,4,5,6,1,2,3,0,'ตกลง'].map((key, index) => (
+                                {[7, 8, 9, 4, 5, 6, 1, 2, 3, 0, 'ตกลง'].map((key, index) => (
                                     <button
                                         key={index}
                                         onClick={() => {

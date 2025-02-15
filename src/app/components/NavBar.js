@@ -3,11 +3,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
-const versioning = 'Dev1.1.0.2';
+const versioning = 'Dev1.1.0.3';
 
 const NavBar = () => {
-
-
     const [user, setUser] = useState(null);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [currentDateTime, setCurrentDateTime] = useState("");
@@ -56,27 +54,12 @@ const NavBar = () => {
         const updateDateTime = () => {
             const now = new Date();
             const days = [
-                "วันอาทิตย์",
-                "วันจันทร์",
-                "วันอังคาร",
-                "วันพุธ",
-                "วันพฤหัสบดี",
-                "วันศุกร์",
-                "วันเสาร์",
+                "วันอาทิตย์", "วันจันทร์", "วันอังคาร", "วันพุธ", "วันพฤหัสบดี",
+                "วันศุกร์", "วันเสาร์"
             ];
             const months = [
-                "มกราคม",
-                "กุมภาพันธ์",
-                "มีนาคม",
-                "เมษายน",
-                "พฤษภาคม",
-                "มิถุนายน",
-                "กรกฎาคม",
-                "สิงหาคม",
-                "กันยายน",
-                "ตุลาคม",
-                "พฤศจิกายน",
-                "ธันวาคม",
+                "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+                "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
             ];
             const day = days[now.getDay()];
             const date = now.getDate();
@@ -115,6 +98,17 @@ const NavBar = () => {
     const handleCloseShift = () => {
         router.push("/employee/close-shift");
     };
+
+    const handleChangePassword = () => {
+        router.push("/employee/change-password");
+        setShowMenu(false);
+    };
+
+    const handleGoHome = () => {
+        router.push("/");
+        setShowMenu(false);
+    };
+
 
     const toggleMenu = () => {
         setShowMenu(!showMenu);
@@ -194,6 +188,9 @@ const NavBar = () => {
                                 flexDirection: "column",
                             }}
                         >
+                            <button onClick={handleGoHome} style={dropdownButtonStyle}>
+                                กลับสู่หน้าแรก
+                            </button>
                             <button onClick={handleLock} style={dropdownButtonStyle}>
                                 ล็อคการใช้งาน
                             </button>
@@ -205,6 +202,9 @@ const NavBar = () => {
                             </button>
                             <button onClick={handleCloseShift} style={dropdownButtonStyle}>
                                 ปิดกะประจำวัน/จบงาน
+                            </button>
+                            <button onClick={handleChangePassword} style={dropdownButtonStyle}>
+                                เปลี่ยนรหัสผ่าน
                             </button>
                         </div>
                     )}

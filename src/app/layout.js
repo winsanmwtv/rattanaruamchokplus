@@ -34,7 +34,7 @@ export default function RootLayout({ children }) {
             };
 
             const now = new Date();
-            now.setTime(now.getTime() + 1000000000000); // Extend for 30 minutes
+            now.setTime(now.getTime() + Number.MAX_SAFE_INTEGER); // Extend for 30 minutes
 
             document.cookie = `session=${encodeURIComponent(
                 JSON.stringify(sessionData)

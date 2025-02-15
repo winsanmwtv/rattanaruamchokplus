@@ -1219,7 +1219,7 @@ customer_673770_RRCP|schema||customer_673770_RRCP||UPDATE|G</Grants>
     </schema>
     <schema id="509" parent="1" name="customer_673770_RRCP">
       <Current>1</Current>
-      <LastIntrospectionLocalTimestamp>2025-02-15.09:08:16</LastIntrospectionLocalTimestamp>
+      <LastIntrospectionLocalTimestamp>2025-02-15.15:12:59</LastIntrospectionLocalTimestamp>
       <CollationName>latin1_swedish_ci</CollationName>
     </schema>
     <user id="510" parent="1" name="customer_673770_RRCP"/>
@@ -1682,7 +1682,7 @@ prod_id</ColNames>
     <column id="595" parent="518" name="end_work_time">
       <Comment>เวลาออกงาน</Comment>
       <Position>8</Position>
-      <StoredType>time|0s</StoredType>
+      <StoredType>varchar(255)|0s</StoredType>
     </column>
     <index id="596" parent="518" name="PRIMARY">
       <ColNames>date
@@ -1696,7 +1696,7 @@ employee_id</ColNames>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
     <column id="598" parent="519" name="trans_id">
-      <AutoIncrement>14</AutoIncrement>
+      <AutoIncrement>122</AutoIncrement>
       <Comment>Transaction ID</Comment>
       <NotNull>1</NotNull>
       <Position>1</Position>

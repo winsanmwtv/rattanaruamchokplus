@@ -81,7 +81,7 @@ const EmployeePage = () => {
                        display: 'flex',
                        justifyContent: 'center',
                        alignItems: 'center',
-                       height: 'auto',
+                       height: '120px',
                        borderRadius: '8px',
                    }}>
                     {menu.label}
