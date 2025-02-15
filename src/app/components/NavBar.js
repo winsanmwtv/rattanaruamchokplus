@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
-const versioning = 'Dev1.1.0.6';
+const versioning = 'Dev 1.1.0.7';
 
 const NavBar = () => {
     const [user, setUser] = useState(null);

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import styled, { css } from 'styled-components';
 
 const PageContainer = styled.div`
@@ -95,6 +96,14 @@ export default function ChangePasswordPage() {
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const router = useRouter();
+
+    useEffect(() => {
+        const emp_id = document.cookie.split('; ').find(row => row.startsWith('emp_id='))?.split('=')[1];
+        if (emp_id === '90000000') {
+            router.push('/employee/pos/terminal');
+        }
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -103,13 +112,13 @@ export default function ChangePasswordPage() {
         setLoading(true);
 
         if (newPassword !== confirmPassword) {
-            setError("รหัสผ่านไม่ตรงกัน"); // Thai
+            setError("รหัสผ่านไม่ตรงกัน");
             setLoading(false);
             return;
         }
 
         if (newPassword.length < 6) {
-            setError("รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร"); // Thai
+            setError("รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร");
             setLoading(false);
             return;
         }
@@ -124,18 +133,18 @@ export default function ChangePasswordPage() {
             });
 
             if (response.ok) {
-                setMessage('เปลี่ยนรหัสผ่านสำเร็จ!'); // Thai
+                setMessage('เปลี่ยนรหัสผ่านสำเร็จ!');
                 setError('');
                 setNewPassword('');
                 setConfirmPassword('');
             } else {
                 const data = await response.json();
-                setError(data.message || 'เปลี่ยนรหัสผ่านล้มเหลว.'); // Thai
+                setError(data.message || 'เปลี่ยนรหัสผ่านล้มเหลว.');
                 setMessage('');
             }
         } catch (err) {
             console.error("Error changing password:", err);
-            setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง.'); // Thai
+            setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง.');
             setMessage('');
         } finally {
             setLoading(false);
@@ -145,11 +154,11 @@ export default function ChangePasswordPage() {
     return (
         <PageContainer>
             <ContentContainer>
-                <Title>เปลี่ยนรหัสผ่าน</Title> {/* Thai */}
+                <Title>เปลี่ยนรหัสผ่าน</Title>
 
                 <form onSubmit={handleSubmit}>
                     <InputGroup>
-                        <Label htmlFor="newPassword">รหัสผ่านใหม่:</Label> {/* Thai */}
+                        <Label htmlFor="newPassword">รหัสผ่านใหม่:</Label>
                         <Input
                             type="password"
                             id="newPassword"
@@ -159,7 +168,7 @@ export default function ChangePasswordPage() {
                         />
                     </InputGroup>
                     <InputGroup>
-                        <Label htmlFor="confirmPassword">ยืนยันรหัสผ่าน:</Label> {/* Thai */}
+                        <Label htmlFor="confirmPassword">ยืนยันรหัสผ่าน:</Label>
                         <Input
                             type="password"
                             id="confirmPassword"
@@ -170,7 +179,7 @@ export default function ChangePasswordPage() {
                     </InputGroup>
 
                     <Button type="submit" disabled={loading}>
-                        {loading ? "กำลังบันทึก..." : "บันทึก"} {/* Thai */}
+                        {loading ? "กำลังบันทึก..." : "บันทึก"}
                     </Button>
 
                     {message && <Message type="success">{message}</Message>}
