@@ -740,7 +740,7 @@ const PosPage = () => {
                     <div id="receipt-print">
                         <div style={{textAlign: 'center', marginBottom: '10px'}}>
                             ร้าน รัตนารวมโชค ({9000})<br/>
-                            สาขา {สาขา || "ไม่ระบุ"}<br/>
+                            สาขา {"พระจอมเกล้าพระนครเหนือ" || "ไม่ระบุ"}<br/>
                             {new Date().toLocaleDateString('th-TH', { // ส่วนที่แก้ไข
                                 day: '2-digit',
                                 month: '2-digit',
