@@ -76,8 +76,8 @@ const MobilePosPage = () => {
     // ------------------ Video Constraints ------------------
     const videoConstraints =
         videoDevices.length > 0
-            ? { deviceId: { exact: videoDevices[selectedDeviceIndex].deviceId } }
-            : { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } };
+            ? { deviceId: { exact: videoDevices[selectedDeviceIndex].deviceId }, width: { ideal: 640 }, height: { ideal: 480 } }
+            : { facingMode: { ideal: "environment" }, width: { ideal: 640 }, height: { ideal: 480 } };
 
     // ------------------ Switch Camera Handler ------------------
     const handleSwitchCamera = () => {
@@ -452,7 +452,7 @@ const MobilePosPage = () => {
 
     // ------------------ RENDER FUNCTIONS ------------------
 
-    // Scan Mode UI – container ensures a fixed horizontal crop.
+    // Scan Mode UI – container ensures a fixed horizontal (landscape) crop.
     const renderScanMode = () => (
         <div style={{ padding: "20px", textAlign: "center" }} ref={scannerRef}>
             <div style={{ fontSize: "1.2rem", fontWeight: "bold", marginBottom: "10px" }}>
@@ -476,6 +476,7 @@ const MobilePosPage = () => {
                         }}
                     >
                         <BarcodeScannerComponent
+                            delay={100}
                             width={300}
                             height={200}
                             videoConstraints={videoConstraints}
@@ -595,7 +596,7 @@ const MobilePosPage = () => {
         </div>
     );
 
-    // More Menu UI, Payment UI, and Result UIs remain similar.
+    // More Menu, Payment, and Result UIs remain similar...
     const renderMoreMenu = () => (
         <div style={{ padding: "20px" }}>
             <div style={{ textAlign: "center", marginBottom: "20px", fontSize: "1.2rem", fontWeight: "bold" }}>
