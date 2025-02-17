@@ -32,8 +32,11 @@ const MobilePosPage = () => {
     const [videoDevices, setVideoDevices] = useState([]);
     const [selectedDeviceIndex, setSelectedDeviceIndex] = useState(0);
 
-    // Zoom state (1x to 2x)
-    const [zoom, setZoom] = useState(1);
+    // Zoom state (default set to 2x)
+    const [zoom, setZoom] = useState(2);
+
+    // To prevent duplicate scans
+    const [lastScanned, setLastScanned] = useState("");
 
     // Modes: "scan", "more", "payment", "cash", "thaiQR", "result"
     const [mode, setMode] = useState("scan");
@@ -61,7 +64,7 @@ const MobilePosPage = () => {
                     const label = device.label.toLowerCase();
                     return !label.includes("front") && !label.includes("selfie");
                 });
-                // If no rear cameras are found, fallback to all video devices.
+                // Fallback if no rear-facing devices are found.
                 if (rearCameras.length === 0) {
                     rearCameras = allVideoDevices;
                 }
@@ -76,7 +79,11 @@ const MobilePosPage = () => {
     // ------------------ Video Constraints ------------------
     const videoConstraints =
         videoDevices.length > 0
-            ? { deviceId: { exact: videoDevices[selectedDeviceIndex].deviceId }, width: { ideal: 640 }, height: { ideal: 480 } }
+            ? {
+                deviceId: { exact: videoDevices[selectedDeviceIndex].deviceId },
+                width: { ideal: 640 },
+                height: { ideal: 480 },
+            }
             : { facingMode: { ideal: "environment" }, width: { ideal: 640 }, height: { ideal: 480 } };
 
     // ------------------ Switch Camera Handler ------------------
@@ -84,7 +91,7 @@ const MobilePosPage = () => {
         if (videoDevices.length > 1) {
             setSelectedDeviceIndex((prevIndex) => (prevIndex + 1) % videoDevices.length);
             // Optionally reset zoom when switching cameras.
-            setZoom(1);
+            setZoom(2);
         }
     };
 
@@ -94,7 +101,7 @@ const MobilePosPage = () => {
         setZoom(newZoom);
     };
 
-    // ------------------ Apply Zoom & Auto-Focus Constraints ------------------
+    // ------------------ Apply Zoom, Auto-Focus, and Contrast Enhancements ------------------
     useEffect(() => {
         if (showCamera && scannerRef.current) {
             const videoEl = scannerRef.current.querySelector("video");
@@ -119,9 +126,9 @@ const MobilePosPage = () => {
                         }
                     }
                     if (advanced.length > 0) {
-                        track.applyConstraints({ advanced }).catch((err) => {
-                            console.error("Failed to apply advanced constraints:", err);
-                        });
+                        track
+                            .applyConstraints({ advanced })
+                            .catch((err) => console.error("Failed to apply advanced constraints:", err));
                     }
                 }
             }
@@ -159,7 +166,7 @@ const MobilePosPage = () => {
     // ------------------ Barcode Processing ------------------
     const handleBarcodeSubmit = async (barcodeValue) => {
         if (!barcodeValue.trim()) return;
-        if (isWaiting) return; // Prevent duplicate scans
+        if (isWaiting) return; // Prevent duplicate processing
 
         // Disable scanning for 1.5 sec.
         setIsWaiting(true);
@@ -175,6 +182,7 @@ const MobilePosPage = () => {
                 setTimeout(() => {
                     setIsWaiting(false);
                     setShowCamera(false);
+                    setLastScanned(""); // reset last scanned
                 }, 1500);
                 return;
             }
@@ -192,9 +200,11 @@ const MobilePosPage = () => {
         } catch (error) {
             console.error("Error fetching product:", error);
         }
+        // Clear waiting and last scanned after delay
         setTimeout(() => {
             setIsWaiting(false);
             setShowCamera(false);
+            setLastScanned("");
         }, 1500);
     };
 
@@ -202,11 +212,14 @@ const MobilePosPage = () => {
     const handleScan = useCallback(
         (err, result) => {
             if (result && !isWaiting) {
+                // Prevent duplicate scan of same barcode.
+                if (result.text === lastScanned) return;
+                setLastScanned(result.text);
                 console.log("Scanned barcode:", result.text);
                 handleBarcodeSubmit(result.text);
             }
         },
-        [isWaiting]
+        [isWaiting, lastScanned]
     );
 
     // ------------------ Quantity Handlers ------------------
@@ -291,7 +304,10 @@ const MobilePosPage = () => {
                 });
                 if (!receiptItemRes.ok) {
                     const errorData = await receiptItemRes.json();
-                    setErrorMessage(errorData.error || `สร้างรายการสินค้าในใบเสร็จล้มเหลวสำหรับ ${item.barcode}`);
+                    setErrorMessage(
+                        errorData.error ||
+                        `สร้างรายการสินค้าในใบเสร็จล้มเหลวสำหรับ ${item.barcode}`
+                    );
                     return;
                 }
                 const transItemRes = await fetch("/api/transaction_item/create", {
@@ -306,7 +322,10 @@ const MobilePosPage = () => {
                 });
                 if (!transItemRes.ok) {
                     const errorData = await transItemRes.json();
-                    setErrorMessage(errorData.error || `สร้างรายการสินค้าในธุรกรรมล้มเหลวสำหรับ ${item.barcode}`);
+                    setErrorMessage(
+                        errorData.error ||
+                        `สร้างรายการสินค้าในธุรกรรมล้มเหลวสำหรับ ${item.barcode}`
+                    );
                     return;
                 }
                 const stockRes = await fetch("/api/product/updateStock", {
@@ -320,7 +339,9 @@ const MobilePosPage = () => {
                 });
                 if (!stockRes.ok) {
                     const errorData = await stockRes.json();
-                    setErrorMessage(errorData.error || `อัปเดตสต็อกล้มเหลวสำหรับ ${item.barcode}`);
+                    setErrorMessage(
+                        errorData.error || `อัปเดตสต็อกล้มเหลวสำหรับ ${item.barcode}`
+                    );
                     return;
                 }
             }
@@ -404,7 +425,9 @@ const MobilePosPage = () => {
                 });
                 if (!receiptItemRes.ok) {
                     const errorData = await receiptItemRes.json();
-                    setErrorMessage(errorData.error || `สร้างรายการสินค้าในใบเสร็จล้มเหลวสำหรับ ${item.barcode}`);
+                    setErrorMessage(
+                        errorData.error || `สร้างรายการสินค้าในใบเสร็จล้มเหลวสำหรับ ${item.barcode}`
+                    );
                     return;
                 }
                 const transItemRes = await fetch("/api/transaction_item/create", {
@@ -419,7 +442,9 @@ const MobilePosPage = () => {
                 });
                 if (!transItemRes.ok) {
                     const errorData = await transItemRes.json();
-                    setErrorMessage(errorData.error || `สร้างรายการสินค้าในธุรกรรมล้มเหลวสำหรับ ${item.barcode}`);
+                    setErrorMessage(
+                        errorData.error || `สร้างรายการสินค้าในธุรกรรมล้มเหลวสำหรับ ${item.barcode}`
+                    );
                     return;
                 }
                 const stockRes = await fetch("/api/product/updateStock", {
@@ -433,7 +458,9 @@ const MobilePosPage = () => {
                 });
                 if (!stockRes.ok) {
                     const errorData = await stockRes.json();
-                    setErrorMessage(errorData.error || `อัปเดตสต็อกล้มเหลวสำหรับ ${item.barcode}`);
+                    setErrorMessage(
+                        errorData.error || `อัปเดตสต็อกล้มเหลวสำหรับ ${item.barcode}`
+                    );
                     return;
                 }
             }
@@ -452,7 +479,7 @@ const MobilePosPage = () => {
 
     // ------------------ RENDER FUNCTIONS ------------------
 
-    // Scan Mode UI – container ensures a fixed horizontal (landscape) crop.
+    // Scan Mode UI – the container ensures a fixed horizontal (landscape) crop.
     const renderScanMode = () => (
         <div style={{ padding: "20px", textAlign: "center" }} ref={scannerRef}>
             <div style={{ fontSize: "1.2rem", fontWeight: "bold", marginBottom: "10px" }}>
@@ -489,6 +516,7 @@ const MobilePosPage = () => {
                                 width: "100%",
                                 height: "100%",
                                 objectFit: "cover",
+                                filter: "contrast(150%) brightness(120%)", // Enhance contrast/brightness
                             }}
                         />
                         <button
@@ -596,7 +624,7 @@ const MobilePosPage = () => {
         </div>
     );
 
-    // More Menu, Payment, and Result UIs remain similar...
+    // More Menu, Payment, and Result UIs remain similar.
     const renderMoreMenu = () => (
         <div style={{ padding: "20px" }}>
             <div style={{ textAlign: "center", marginBottom: "20px", fontSize: "1.2rem", fontWeight: "bold" }}>
