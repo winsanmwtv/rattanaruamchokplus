@@ -53,16 +53,23 @@ const MobilePosPage = () => {
                 const videoDevices = devices.filter(
                     (device) => device.kind === "videoinput"
                 );
-                // Look for a device that does not include "ultra" in the label
+                // Look for a device that:
+                // - Includes "wide" in its label (indicating standard wide lens)
+                // - Does NOT include "ultra", "front", or "selfie"
                 const standardDevice = videoDevices.find((device) => {
                     const label = device.label.toLowerCase();
-                    return label.includes("wide") && !label.includes("ultra");
+                    return (
+                        label.includes("wide") &&
+                        !label.includes("ultra") &&
+                        !label.includes("front") &&
+                        !label.includes("selfie")
+                    );
                 });
                 if (standardDevice) {
                     setSelectedDeviceId(standardDevice.deviceId);
                 } else if (videoDevices.length > 0) {
-                    // Fallback: use the first available device
-                    setSelectedDeviceId(videoDevices[0].deviceId);
+                    // Fallback: ensure we use rear camera by using facingMode.
+                    setSelectedDeviceId(null);
                 }
             })
             .catch((err) => {
@@ -71,9 +78,10 @@ const MobilePosPage = () => {
     }, []);
 
     // ------------------ Define Video Constraints ------------------
+    // If a deviceId is selected, use it. Otherwise, use the rear-facing camera.
     const videoConstraints = selectedDeviceId
         ? { deviceId: selectedDeviceId }
-        : { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } };
+        : { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } };
 
     // ------------------ Fetch Receipt ID ------------------
     useEffect(() => {
@@ -403,7 +411,7 @@ const MobilePosPage = () => {
 
     // ------------------ RENDER FUNCTIONS ------------------
 
-    // Scan Mode UI
+    // Scan Mode UI – note the container styling for horizontal crop.
     const renderScanMode = () => (
         <div style={{ padding: "20px", textAlign: "center" }} ref={scannerRef}>
             <div style={{ fontSize: "1.2rem", fontWeight: "bold", marginBottom: "10px" }}>
@@ -415,15 +423,34 @@ const MobilePosPage = () => {
             {/* Camera section */}
             <div style={{ marginBottom: "20px" }}>
                 {isWaiting ? (
-                    <div style={{ width: "100%", height: "200px", backgroundColor: "black" }}></div>
+                    <div style={{ width: "300px", height: "200px", backgroundColor: "black" }}></div>
                 ) : showCamera ? (
-                    <BarcodeScannerComponent
-                        width={300}
-                        height={200}
-                        videoConstraints={videoConstraints}
-                        onUpdate={handleScan}
-                        onError={(err) => console.error("Scanner error:", err)}
-                    />
+                    <div
+                        style={{
+                            width: "300px",
+                            height: "200px",
+                            overflow: "hidden",
+                            position: "relative",
+                            margin: "0 auto",
+                        }}
+                    >
+                        <BarcodeScannerComponent
+                            width={300}
+                            height={200}
+                            videoConstraints={videoConstraints}
+                            onUpdate={handleScan}
+                            onError={(err) => console.error("Scanner error:", err)}
+                            // Style the video element to cover the container so it remains horizontal.
+                            style={{
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                            }}
+                        />
+                    </div>
                 ) : (
                     <button
                         onClick={() => setShowCamera(true)}
