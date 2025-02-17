@@ -28,6 +28,9 @@ const MobilePosPage = () => {
     const [showCamera, setShowCamera] = useState(false); // Disabled by default
     const [isWaiting, setIsWaiting] = useState(false);
 
+    // Device selection state
+    const [selectedDeviceId, setSelectedDeviceId] = useState(null);
+
     // Modes: "scan", "more", "payment", "cash", "thaiQR", "result"
     const [mode, setMode] = useState("scan");
     const [cashReceived, setCashReceived] = useState("");
@@ -36,14 +39,41 @@ const MobilePosPage = () => {
     // Reference for the scanner container (if needed)
     const scannerRef = useRef(null);
 
-    // Video constraints to force a default zoom of 1x
-    const videoConstraints = {
-        facingMode: "environment",
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-        // Request advanced constraints; if the camera supports zoom, this should set it to 1x.
-        advanced: [{ zoom: 1 }]
-    };
+    // ------------------ Enumerate and Select Video Device ------------------
+    useEffect(() => {
+        // Request permission first so device labels become available
+        navigator.mediaDevices
+            .getUserMedia({ video: true })
+            .then((stream) => {
+                // Stop the stream immediately – we just need permission.
+                stream.getTracks().forEach((track) => track.stop());
+                return navigator.mediaDevices.enumerateDevices();
+            })
+            .then((devices) => {
+                const videoDevices = devices.filter(
+                    (device) => device.kind === "videoinput"
+                );
+                // Look for a device that does not include "ultra" in the label
+                const standardDevice = videoDevices.find((device) => {
+                    const label = device.label.toLowerCase();
+                    return label.includes("wide") && !label.includes("ultra");
+                });
+                if (standardDevice) {
+                    setSelectedDeviceId(standardDevice.deviceId);
+                } else if (videoDevices.length > 0) {
+                    // Fallback: use the first available device
+                    setSelectedDeviceId(videoDevices[0].deviceId);
+                }
+            })
+            .catch((err) => {
+                console.error("Error enumerating devices:", err);
+            });
+    }, []);
+
+    // ------------------ Define Video Constraints ------------------
+    const videoConstraints = selectedDeviceId
+        ? { deviceId: selectedDeviceId }
+        : { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } };
 
     // ------------------ Fetch Receipt ID ------------------
     useEffect(() => {
