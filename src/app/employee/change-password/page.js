@@ -117,8 +117,8 @@ export default function ChangePasswordPage() {
             return;
         }
 
-        if (newPassword.length < 6) {
-            setError("รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร");
+        if (newPassword.length < 4) {
+            setError("รหัสผ่านต้องมีความยาวอย่างน้อย 4 ตัวอักษร");
             setLoading(false);
             return;
         }

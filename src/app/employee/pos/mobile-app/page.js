@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import BarcodeScannerComponent from "react-qr-barcode-scanner";
 
@@ -32,6 +32,18 @@ const MobilePosPage = () => {
     const [mode, setMode] = useState("scan");
     const [cashReceived, setCashReceived] = useState("");
     const [changeDue, setChangeDue] = useState(null);
+
+    // Reference for the scanner container (if needed)
+    const scannerRef = useRef(null);
+
+    // Video constraints to force a default zoom of 1x
+    const videoConstraints = {
+        facingMode: "environment",
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+        // Request advanced constraints; if the camera supports zoom, this should set it to 1x.
+        advanced: [{ zoom: 1 }]
+    };
 
     // ------------------ Fetch Receipt ID ------------------
     useEffect(() => {
@@ -363,7 +375,7 @@ const MobilePosPage = () => {
 
     // Scan Mode UI
     const renderScanMode = () => (
-        <div style={{ padding: "20px", textAlign: "center" }}>
+        <div style={{ padding: "20px", textAlign: "center" }} ref={scannerRef}>
             <div style={{ fontSize: "1.2rem", fontWeight: "bold", marginBottom: "10px" }}>
                 รหัสใบเสร็จ: {receiptId}
             </div>
@@ -378,6 +390,7 @@ const MobilePosPage = () => {
                     <BarcodeScannerComponent
                         width={300}
                         height={200}
+                        videoConstraints={videoConstraints}
                         onUpdate={handleScan}
                         onError={(err) => console.error("Scanner error:", err)}
                     />
@@ -423,8 +436,6 @@ const MobilePosPage = () => {
                     ตกลง
                 </button>
             </div>
-            {/* Quantity input (desktop style) */}
-
             {/* More menu button */}
             <div style={{ marginBottom: "20px" }}>
                 <button
