@@ -25,63 +25,63 @@ const MobilePosPage = () => {
     const [errorMessage, setErrorMessage] = useState("");
 
     // Camera and scanning states
-    const [showCamera, setShowCamera] = useState(false); // Disabled by default
+    const [showCamera, setShowCamera] = useState(false);
     const [isWaiting, setIsWaiting] = useState(false);
 
-    // Device selection state
-    const [selectedDeviceId, setSelectedDeviceId] = useState(null);
+    // Device selection states
+    const [videoDevices, setVideoDevices] = useState([]);
+    const [selectedDeviceIndex, setSelectedDeviceIndex] = useState(0);
 
     // Modes: "scan", "more", "payment", "cash", "thaiQR", "result"
     const [mode, setMode] = useState("scan");
     const [cashReceived, setCashReceived] = useState("");
     const [changeDue, setChangeDue] = useState(null);
 
-    // Reference for the scanner container (if needed)
+    // Reference for the scanner container
     const scannerRef = useRef(null);
 
-    // ------------------ Enumerate and Select Video Device ------------------
+    // ------------------ Enumerate and Select Video Devices ------------------
     useEffect(() => {
-        // Request permission first so device labels become available
+        // Request permission first so that device labels are available
         navigator.mediaDevices
             .getUserMedia({ video: true })
             .then((stream) => {
-                // Stop the stream immediately – we just need permission.
                 stream.getTracks().forEach((track) => track.stop());
                 return navigator.mediaDevices.enumerateDevices();
             })
             .then((devices) => {
-                const videoDevices = devices.filter(
+                const allVideoDevices = devices.filter(
                     (device) => device.kind === "videoinput"
                 );
-                // Look for a device that:
-                // - Includes "wide" in its label (indicating standard wide lens)
-                // - Does NOT include "ultra", "front", or "selfie"
-                const standardDevice = videoDevices.find((device) => {
+                // Filter out front-facing devices based on label (if available)
+                let rearCameras = allVideoDevices.filter((device) => {
                     const label = device.label.toLowerCase();
-                    return (
-                        label.includes("wide") &&
-                        !label.includes("ultra") &&
-                        !label.includes("front") &&
-                        !label.includes("selfie")
-                    );
+                    return !label.includes("front") && !label.includes("selfie");
                 });
-                if (standardDevice) {
-                    setSelectedDeviceId(standardDevice.deviceId);
-                } else if (videoDevices.length > 0) {
-                    // Fallback: ensure we use rear camera by using facingMode.
-                    setSelectedDeviceId(null);
+                // If no rear-facing devices are detected, fallback to all devices.
+                if (rearCameras.length === 0) {
+                    rearCameras = allVideoDevices;
                 }
+                setVideoDevices(rearCameras);
+                setSelectedDeviceIndex(0);
             })
             .catch((err) => {
                 console.error("Error enumerating devices:", err);
             });
     }, []);
 
-    // ------------------ Define Video Constraints ------------------
-    // If a deviceId is selected, use it. Otherwise, use the rear-facing camera.
-    const videoConstraints = selectedDeviceId
-        ? { deviceId: selectedDeviceId }
-        : { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } };
+    // ------------------ Video Constraints ------------------
+    const videoConstraints =
+        videoDevices.length > 0
+            ? { deviceId: { exact: videoDevices[selectedDeviceIndex].deviceId } }
+            : { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } };
+
+    // ------------------ Switch Camera Handler ------------------
+    const handleSwitchCamera = () => {
+        if (videoDevices.length > 1) {
+            setSelectedDeviceIndex((prevIndex) => (prevIndex + 1) % videoDevices.length);
+        }
+    };
 
     // ------------------ Fetch Receipt ID ------------------
     useEffect(() => {
@@ -147,7 +147,6 @@ const MobilePosPage = () => {
         } catch (error) {
             console.error("Error fetching product:", error);
         }
-        // Re-enable scanning after waiting period (camera remains off by default)
         setTimeout(() => {
             setIsWaiting(false);
             setShowCamera(false);
@@ -165,7 +164,7 @@ const MobilePosPage = () => {
         [isWaiting]
     );
 
-    // ------------------ Quantity Handlers (desktop style) ------------------
+    // ------------------ Quantity Handlers ------------------
     const increaseQuantity = () => {
         setQuantityInput((prev) => parseInt(prev, 10) + 1);
     };
@@ -190,7 +189,6 @@ const MobilePosPage = () => {
         setMode("payment");
     };
 
-    // Cash Payment Handler (contact database immediately)
     const handleCashPayment = async () => {
         setErrorMessage("กำลังติดต่อกับระบบฐานข้อมูล CityRetails... | อาจใช้เวลาสักครู่");
         const cash = parseFloat(cashReceived) || 0;
@@ -305,12 +303,10 @@ const MobilePosPage = () => {
         }
     };
 
-    // When user clicks Thai QR in Payment mode, simply switch to QR page.
     const handleThaiQRPayment = () => {
         setMode("thaiQR");
     };
 
-    // On the Thai QR page, when user clicks success, then contact the database.
     const submitThaiQRPayment = async () => {
         setErrorMessage("กำลังติดต่อกับระบบฐานข้อมูล CityRetails... | อาจใช้เวลาสักครู่");
         try {
@@ -411,7 +407,7 @@ const MobilePosPage = () => {
 
     // ------------------ RENDER FUNCTIONS ------------------
 
-    // Scan Mode UI – note the container styling for horizontal crop.
+    // Scan Mode UI – the container ensures a fixed horizontal (landscape) crop.
     const renderScanMode = () => (
         <div style={{ padding: "20px", textAlign: "center" }} ref={scannerRef}>
             <div style={{ fontSize: "1.2rem", fontWeight: "bold", marginBottom: "10px" }}>
@@ -440,7 +436,6 @@ const MobilePosPage = () => {
                             videoConstraints={videoConstraints}
                             onUpdate={handleScan}
                             onError={(err) => console.error("Scanner error:", err)}
-                            // Style the video element to cover the container so it remains horizontal.
                             style={{
                                 position: "absolute",
                                 top: 0,
@@ -450,6 +445,22 @@ const MobilePosPage = () => {
                                 objectFit: "cover",
                             }}
                         />
+                        <button
+                            onClick={handleSwitchCamera}
+                            style={{
+                                position: "absolute",
+                                bottom: "5px",
+                                right: "5px",
+                                padding: "5px 10px",
+                                backgroundColor: "rgba(0,0,0,0.5)",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "3px",
+                                cursor: "pointer",
+                            }}
+                        >
+                            Switch Camera
+                        </button>
                     </div>
                 ) : (
                     <button
@@ -525,7 +536,7 @@ const MobilePosPage = () => {
         </div>
     );
 
-    // More Menu UI (2-column layout for 7 options)
+    // More Menu UI, Payment UI, and Result UIs remain as before...
     const renderMoreMenu = () => (
         <div style={{ padding: "20px" }}>
             <div style={{ textAlign: "center", marginBottom: "20px", fontSize: "1.2rem", fontWeight: "bold" }}>
@@ -578,7 +589,6 @@ const MobilePosPage = () => {
         </div>
     );
 
-    // Payment Mode UI
     const renderPaymentMode = () => (
         <div style={{ padding: "20px", textAlign: "center" }}>
             <div style={{ fontSize: "1.2rem", fontWeight: "bold", marginBottom: "10px" }}>
@@ -651,7 +661,6 @@ const MobilePosPage = () => {
         </div>
     );
 
-    // Cash Payment Result UI
     const renderCashResult = () => (
         <div style={{ padding: "20px", textAlign: "center" }}>
             <div style={{ fontSize: "1.2rem", fontWeight: "bold", marginBottom: "10px" }}>
@@ -674,7 +683,6 @@ const MobilePosPage = () => {
         </div>
     );
 
-    // Thai QR Payment UI (database is contacted only after clicking success)
     const renderThaiQRMode = () => (
         <div style={{ padding: "20px", textAlign: "center" }}>
             <div style={{ fontSize: "1.2rem", fontWeight: "bold", marginBottom: "10px" }}>
@@ -709,7 +717,6 @@ const MobilePosPage = () => {
         </div>
     );
 
-    // Transaction Result UI
     const renderResultMode = () => (
         <div style={{ padding: "20px", textAlign: "center" }}>
             <div style={{ fontSize: "1.2rem", fontWeight: "bold", marginBottom: "20px" }}>
@@ -732,7 +739,6 @@ const MobilePosPage = () => {
         </div>
     );
 
-    // Main render based on mode
     const renderContent = () => {
         switch (mode) {
             case "scan":
