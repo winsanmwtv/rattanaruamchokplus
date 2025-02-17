@@ -503,7 +503,6 @@ const MobilePosPage = () => {
                         }}
                     >
                         <BarcodeScannerComponent
-                            delay={500}
                             width={300}
                             height={200}
                             videoConstraints={videoConstraints}
