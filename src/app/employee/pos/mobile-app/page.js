@@ -32,17 +32,20 @@ const MobilePosPage = () => {
     const [videoDevices, setVideoDevices] = useState([]);
     const [selectedDeviceIndex, setSelectedDeviceIndex] = useState(0);
 
+    // Zoom state (1x to 2x)
+    const [zoom, setZoom] = useState(1);
+
     // Modes: "scan", "more", "payment", "cash", "thaiQR", "result"
     const [mode, setMode] = useState("scan");
     const [cashReceived, setCashReceived] = useState("");
     const [changeDue, setChangeDue] = useState(null);
 
-    // Reference for the scanner container
+    // Reference for the scanner container (to access the video element)
     const scannerRef = useRef(null);
 
     // ------------------ Enumerate and Select Video Devices ------------------
     useEffect(() => {
-        // Request permission first so that device labels are available
+        // Request permission so that device labels are available.
         navigator.mediaDevices
             .getUserMedia({ video: true })
             .then((stream) => {
@@ -53,12 +56,12 @@ const MobilePosPage = () => {
                 const allVideoDevices = devices.filter(
                     (device) => device.kind === "videoinput"
                 );
-                // Filter out front-facing devices based on label (if available)
+                // Filter out front-facing devices based on label.
                 let rearCameras = allVideoDevices.filter((device) => {
                     const label = device.label.toLowerCase();
                     return !label.includes("front") && !label.includes("selfie");
                 });
-                // If no rear-facing devices are detected, fallback to all devices.
+                // If no rear cameras are found, fallback to all video devices.
                 if (rearCameras.length === 0) {
                     rearCameras = allVideoDevices;
                 }
@@ -80,8 +83,50 @@ const MobilePosPage = () => {
     const handleSwitchCamera = () => {
         if (videoDevices.length > 1) {
             setSelectedDeviceIndex((prevIndex) => (prevIndex + 1) % videoDevices.length);
+            // Optionally reset zoom when switching cameras.
+            setZoom(1);
         }
     };
+
+    // ------------------ Zoom Handler ------------------
+    const handleZoomChange = (e) => {
+        const newZoom = parseFloat(e.target.value);
+        setZoom(newZoom);
+    };
+
+    // ------------------ Apply Zoom & Auto-Focus Constraints ------------------
+    useEffect(() => {
+        if (showCamera && scannerRef.current) {
+            const videoEl = scannerRef.current.querySelector("video");
+            if (videoEl && videoEl.srcObject) {
+                const [track] = videoEl.srcObject.getVideoTracks();
+                if (track) {
+                    const capabilities = track.getCapabilities();
+                    const advanced = [];
+                    // Apply zoom if supported.
+                    if (capabilities.zoom) {
+                        const min = capabilities.zoom.min || 1;
+                        const max = capabilities.zoom.max || 2;
+                        const newZoom = Math.min(max, Math.max(min, zoom));
+                        advanced.push({ zoom: newZoom });
+                    }
+                    // Attempt to optimize auto-focus if supported.
+                    if (capabilities.focusMode && Array.isArray(capabilities.focusMode)) {
+                        if (capabilities.focusMode.includes("continuous")) {
+                            advanced.push({ focusMode: "continuous" });
+                        } else if (capabilities.focusMode.includes("auto")) {
+                            advanced.push({ focusMode: "auto" });
+                        }
+                    }
+                    if (advanced.length > 0) {
+                        track.applyConstraints({ advanced }).catch((err) => {
+                            console.error("Failed to apply advanced constraints:", err);
+                        });
+                    }
+                }
+            }
+        }
+    }, [zoom, showCamera]);
 
     // ------------------ Fetch Receipt ID ------------------
     useEffect(() => {
@@ -116,7 +161,7 @@ const MobilePosPage = () => {
         if (!barcodeValue.trim()) return;
         if (isWaiting) return; // Prevent duplicate scans
 
-        // Disable scanning & blank the screen for 1.5 sec
+        // Disable scanning for 1.5 sec.
         setIsWaiting(true);
         setShowCamera(false);
 
@@ -407,7 +452,7 @@ const MobilePosPage = () => {
 
     // ------------------ RENDER FUNCTIONS ------------------
 
-    // Scan Mode UI – the container ensures a fixed horizontal (landscape) crop.
+    // Scan Mode UI – container ensures a fixed horizontal crop.
     const renderScanMode = () => (
         <div style={{ padding: "20px", textAlign: "center" }} ref={scannerRef}>
             <div style={{ fontSize: "1.2rem", fontWeight: "bold", marginBottom: "10px" }}>
@@ -476,6 +521,20 @@ const MobilePosPage = () => {
                     </button>
                 )}
             </div>
+            {/* Zoom slider (visible when camera is active) */}
+            {showCamera && (
+                <div style={{ marginBottom: "10px" }}>
+                    <label style={{ marginRight: "10px" }}>Zoom: {zoom}x</label>
+                    <input
+                        type="range"
+                        min="1"
+                        max="2"
+                        step="0.1"
+                        value={zoom}
+                        onChange={handleZoomChange}
+                    />
+                </div>
+            )}
             {/* Manual barcode input */}
             <div style={{ marginBottom: "10px" }}>
                 <input
@@ -536,7 +595,7 @@ const MobilePosPage = () => {
         </div>
     );
 
-    // More Menu UI, Payment UI, and Result UIs remain as before...
+    // More Menu UI, Payment UI, and Result UIs remain similar.
     const renderMoreMenu = () => (
         <div style={{ padding: "20px" }}>
             <div style={{ textAlign: "center", marginBottom: "20px", fontSize: "1.2rem", fontWeight: "bold" }}>
