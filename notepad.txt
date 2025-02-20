@@ -1,0 +1,11 @@
+Receipt:
+- receipt_id
+- trans_id <-- no use ig, but it exist
+- issue_date
+- branch_id
+
+Receipt_Item:
+- receipt_id
+- prod_id
+- quantity
+- price_each

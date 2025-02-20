@@ -638,8 +638,8 @@ const MobilePosPage = () => {
                 }}
             >
                 {[
-                    { label: "เช็คราคาสินค้า", action: () => alert("เช็คราคาสินค้า") },
-                    { label: "คืนสินค้า (Void)", action: () => alert("คืนสินค้า (Void)") },
+                    { label: "เช็คราคาสินค้า", path: "/employee/enquiry" },
+                    { label: "คืนสินค้า (Void)", path: "/employee/pos/void" },
                     { label: "พักบิล", action: () => alert("พักบิล") },
                     { label: "ออกจากระบบ", action: () => alert("ออกจากระบบ") },
                     { label: "เรียกรายการพักบิล", action: () => alert("เรียกรายการพักบิล") },
