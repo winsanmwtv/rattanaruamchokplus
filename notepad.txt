@@ -1,1 +1,0 @@
-barcode varchar pk, name_th text, name_en text, price double, front_quantity int, back_quantity int, img_path text, prod_type text, is_bulk bool, bulk_quantity_each int, single_barcode varchar, is_valid_promo bool, branch_id int
