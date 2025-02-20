@@ -15,19 +15,15 @@ const EnquiryPage = () => {
     const [barcode, setBarcode] = useState("");
     const [product, setProduct] = useState(null);
     const [errorMessage, setErrorMessage] = useState("");
-
     const barcodeInputRef = useRef(null);
     const router = useRouter();
 
-    // ---------------- LOGOUT FUNCTION ----------------
-    const handleLogout = () => {
-        document.cookie = "emp_id=; path=/; max-age=0";
-        document.cookie = "firstName=; path=/; max-age=0";
-        document.cookie = "lastName=; path=/; max-age=0";
-        document.cookie = "employeeType=; path=/; max-age=0";
-        document.cookie = "avatarUrl=; path=/; max-age=0";
-        router.push("/login");
-    };
+    // Mobile detection: if screen width is 768px or less, redirect to the mobile version.
+    useEffect(() => {
+        if (window.innerWidth <= 768) {
+            router.push('/employee/enquiry/mobile-app');
+        }
+    }, [router]);
 
     // ---------------- ENQUIRY HANDLERS ----------------
     const handleBarcodeSubmit = async (submittedBarcode) => {
@@ -79,10 +75,18 @@ const EnquiryPage = () => {
     };
 
     // ---------------- RIGHT SIDE (KEYPAD & MENU) ----------------
+    // Updated menu buttons as per your requirements.
     const scanningMenuButtons = [
         { label: "กลับหน้าการขาย", path: "/employee/pos" },
         { label: "คืนสินค้า/คืนเงิน", path: "/employee/pos/void" },
-        { label: "ออกจากระบบ", action: handleLogout },
+        { label: "ออกจากระบบ", action: () => {
+                document.cookie = "emp_id=; path=/; max-age=0";
+                document.cookie = "firstName=; path=/; max-age=0";
+                document.cookie = "lastName=; path=/; max-age=0";
+                document.cookie = "employeeType=; path=/; max-age=0";
+                document.cookie = "avatarUrl=; path=/; max-age=0";
+                router.push("/login");
+            }},
         { label: "สินค้าอื่นๆ", action: () => alert("ฟีเจอร์สินค้าอื่นๆ ยังเขียนไม่เสร็จ") }
     ];
 
@@ -182,8 +186,9 @@ const EnquiryPage = () => {
     };
 
     // ---------------- LEFT SIDE (ENQUIRY DETAILS) ----------------
-    // The product name is now on top, followed by the barcode and price.
-    // If img_path is provided and the file exists in the public folder, it is displayed.
+    // The barcode input box is removed.
+    // The product name now appears on top, followed by the barcode and price.
+    // If img_path exists and the file is available in public, it is displayed.
     const renderLeftContent = () => {
         return (
             <div>
@@ -192,8 +197,6 @@ const EnquiryPage = () => {
                 )}
                 {product && (
                     <div style={{ marginTop: '20px', border: '1px solid #ccc', padding: '10px' }}>
-                        {/* Display product image if available.
-                onError hides the image if the file doesn't exist in public */}
                         {product.img_path && (
                             <div style={{ textAlign: 'center', marginBottom: '10px' }}>
                                 <img
@@ -204,23 +207,19 @@ const EnquiryPage = () => {
                                 />
                             </div>
                         )}
-                        {/* Product Name on top */}
                         <div style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '5px' }}>
                             {product.name_th}
                         </div>
-                        {/* Row: Barcode on left and price on right */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div style={{ fontSize: '1rem' }}>{product.barcode}</div>
                             <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>
                                 {parseFloat(product.price).toFixed(2)} บาท
                             </div>
                         </div>
-                        {/* Stock Info: Frontstore and Backstore */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px' }}>
                             <div>หน้าร้าน: {product.front_quantity}</div>
                             <div>หลังร้าน: {product.back_quantity}</div>
                         </div>
-                        {/* Promotion Info */}
                         <div style={{ marginTop: '10px', fontSize: '1.2rem' }}>
                             โปรโมชั่น:{" "}
                             {product.is_bulk && product.single_price
