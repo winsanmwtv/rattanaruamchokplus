@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+// test commit on new windows 11
+
 export default function Home() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const router = useRouter();
