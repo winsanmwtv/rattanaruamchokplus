@@ -778,14 +778,14 @@ const MobilePosPage = () => {
             <div style={{ marginBottom: "20px" }}>ยอดรวม: {totalPrice.toFixed(2)}</div>
             <div style={{ marginBottom: "20px" }}>
                 <img
-                    src={`https://promptpay.io/1103400083485/${totalPrice}.png`}
+                    src={`https://promptpay.io/004999065967504/${totalPrice}.png`}
                     alt="PromptPay QR Code"
                     style={{ maxWidth: "80%", height: "auto" }}
                 />
             </div>
             <div style={{ marginBottom: "20px" }}>
-                <div>พงศ์ศิริ เลิศพงษ์ไทย</div>
-                <div>1103400083485</div>
+                <div>สิรวิชญ์ ผาสุข</div>
+                <div>004999065967504</div>
             </div>
             <div>
                 <button
