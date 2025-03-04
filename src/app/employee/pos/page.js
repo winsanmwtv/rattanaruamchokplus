@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
-const paymentGateway = '1103400083485';
-const paymentGatewayName = 'พงศ์ศิริ เลิศพงษ์ไทย';
+const paymentGateway = '004999075967504';
+const paymentGatewayName = 'สิรวิชญ์ ผาสุข';
 
 // Helper to get a cookie value by name
 const getCookie = (name) => {
