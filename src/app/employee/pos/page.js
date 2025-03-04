@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
-const paymentGateway = '004999075967504';
+const paymentGateway = '0935182935';
 const paymentGatewayName = 'สิรวิชญ์ ผาสุข';
 
 // Helper to get a cookie value by name
