@@ -435,7 +435,7 @@ const MobilePosPage = () => {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         trans_id: trans_id,
-                        prod_id: item.barcode,
+      	                  prod_id: item.barcode,
                         quantity: item.quantity,
                         price_each: item.price,
                     }),
@@ -778,14 +778,14 @@ const MobilePosPage = () => {
             <div style={{ marginBottom: "20px" }}>ยอดรวม: {totalPrice.toFixed(2)}</div>
             <div style={{ marginBottom: "20px" }}>
                 <img
-                    src={`https://promptpay.io/004999065967504/${totalPrice}.png`}
+                    src={`https://promptpay.io/0935182935/${totalPrice}.png`}
                     alt="PromptPay QR Code"
                     style={{ maxWidth: "80%", height: "auto" }}
                 />
             </div>
             <div style={{ marginBottom: "20px" }}>
                 <div>สิรวิชญ์ ผาสุข</div>
-                <div>004999065967504</div>
+                <div>0935182935</div>
             </div>
             <div>
                 <button
