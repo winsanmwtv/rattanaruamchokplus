@@ -36,7 +36,7 @@ export async function POST(request) {
         // Update product stock levels for each item
         for (const item of itemRows) {
             await connection.query(
-                'UPDATE Product SET front_quantity = front_quantity + ? WHERE barcode = ?',
+                'UPDATE Product SET back_quantity = back_quantity + ? WHERE barcode = ?',
                 [item.quantity, item.prod_id]
             );
         }
