@@ -1,138 +1,174 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
-const VoidReceiptPage = () => {
-    const [receiptId, setReceiptId] = useState('');
-    const [receiptDetails, setReceiptDetails] = useState(null);
-    const [error, setError] = useState('');
-    const inputRef = useRef(null);
+const getCookie = (name) => {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+};
+
+const VoidReceiptListPage = () => {
+    const [receipts, setReceipts] = useState([]);
+    const [selectedReceipt, setSelectedReceipt] = useState(null);
+    const [error, setError] = useState("");
     const router = useRouter();
+    const isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
 
-    const fetchReceiptDetails = async () => {
-        if (!receiptId.trim()) return;
-        setError('Fetching receipt details...');
+    const empId = getCookie("emp_id");
+
+    // Fetch all receipts on component mount
+    useEffect(() => {
+        const fetchReceipts = async () => {
+            try {
+                const res = await fetch("/api/void/list");
+                if (!res.ok) {
+                    setError("Failed to fetch receipts");
+                    return;
+                }
+                const data = await res.json();
+                setReceipts(data);
+            } catch (err) {
+                console.error(err);
+                setError("Error fetching receipts");
+            }
+        };
+        fetchReceipts();
+    }, []);
+
+    // When a receipt is clicked, fetch its details
+    const viewReceipt = async (receiptId) => {
         try {
-            const response = await fetch('/api/void/get', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ receipt_id: receiptId }),
+            const res = await fetch(`/api/void/get?receipt_id=${receiptId}`, {
+                method: "GET",
+                headers: { "Content-Type": "application/json" },
             });
-
-            if (!response.ok) {
-                setError('Receipt not found');
-                setReceiptDetails(null);
+            if (!res.ok) {
+                setError("Failed to fetch receipt details");
                 return;
             }
 
-            const data = await response.json();
-            setReceiptDetails(data);
-            setError('');
+            const data = await res.json();
+            setSelectedReceipt(data);
         } catch (err) {
-            console.error('Error fetching receipt details:', err);
-            setError('An error occurred while fetching receipt details');
-            setReceiptDetails(null);
+            console.error(err);
+            setError("Error fetching receipt details");
         }
     };
 
+    // Cancel (void) the currently selected receipt
+    const cancelReceipt = async () => {
+        if (!selectedReceipt) return;
+        const confirmCancel = window.confirm("คุณแน่ใจหรือไม่ว่าต้องการยกเลิกใบเสร็จนี้?");
+        if (!confirmCancel) return;
 
-    const handleCancelReceipt = async () => {
-        if (!receiptDetails) return;
+        // Calculate the total price of the receipt, summing up the price of all items
+        const totalPrice = selectedReceipt.items.reduce((sum, item) => {
+            return sum + (item.quantity * item.price_each);
+        }, 0);
+
+        // Make the total price negative (because it's a void action)
+        const negativeTotalPrice = -totalPrice;
 
         try {
-            const response = await fetch('/api/void/cancel', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ receipt_id: receiptDetails.receipt_id }), // Sending receipt_id as the body in JSON format
+            const res = await fetch("/api/void/cancel", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ receipt_id: selectedReceipt.receipt_id }),
             });
-
-            if (!response.ok) {
-                setError('Failed to cancel receipt');
+            if (!res.ok) {
+                setError("Failed to cancel receipt");
                 return;
             }
 
-            alert('Receipt has been canceled');
-            handleReset(); // Assuming handleReset is a function that clears the state or form
+            const shiftRes = await fetch('/api/shift/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    date: new Date().toISOString().slice(0, 10),
+                    emp_id: empId,
+                    increment: negativeTotalPrice  // Using the negative total price
+                })
+            });
+
+            if (!shiftRes.ok) {
+                const errorData = await shiftRes.json();
+                setError(errorData.error || "Shift update failed");
+                return; // Stop further processing
+            }
+
+            alert("Receipt has been canceled");
+            router.push("/employee/pos"); // Redirect to sales page
         } catch (err) {
-            console.error('Error canceling receipt:', err);
-            setError('An error occurred while canceling the receipt');
+            console.error(err);
+            setError("Error canceling receipt");
         }
     };
 
+    // Render the list view (all receipt IDs)
+    const renderListView = () => (
+        <div>
+            <h1>รายการใบเสร็จ (ใหม่สุดไปเก่า)</h1>
+            {error && <div style={{ color: "red" }}>{error}</div>}
+            <ul style={{ listStyle: "none", padding: 0 }}>
+                {receipts.map((receipt) => (
+                    <li key={receipt.receipt_id} style={{ borderBottom: "1px solid #ccc", padding: "10px 0" }}>
+                        <div
+                            style={{ display: isMobile ? "block" : "flex", justifyContent: "space-between", alignItems: "center" }}
+                        >
+                            <div>
+                                <strong>{receipt.receipt_id}</strong>
+                                <br />
+                                <small>Date: {receipt.issue_date}</small>
+                                <br />
+                                <small>Branch: {receipt.branch_id}</small>
+                            </div>
+                            <div style={{ marginTop: isMobile ? "10px" : 0 }}>
+                                <button onClick={() => viewReceipt(receipt.receipt_id)} style={{ padding: "8px 12px" }}>
+                                    View
+                                </button>
+                            </div>
+                        </div>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
 
-    const handleReset = () => {
-        setReceiptId('');
-        setReceiptDetails(null);
-        inputRef.current?.focus();
-    };
-
-    const keypadButtons = [7, 8, 9, 4, 5, 6, 1, 2, 3, 0, 'Search'];
+    // Render the detail view (for a single receipt)
+    const renderDetailView = () => (
+        <div>
+            <button onClick={() => setSelectedReceipt(null)} style={{ marginBottom: "20px", padding: "10px" }}>
+                Back to List
+            </button>
+            <h2>Receipt: {selectedReceipt.receipt_id}</h2>
+            <p>
+                Date: {selectedReceipt.issue_date} | Branch: {selectedReceipt.branch_id}
+            </p>
+            <h3>Items:</h3>
+            <ul>
+                {selectedReceipt.items.map((item) => (
+                    <li key={item.prod_id}>
+                        {item.name_th} - {item.quantity} x {item.price_each} THB
+                    </li>
+                ))}
+            </ul>
+            <button onClick={cancelReceipt} style={{ padding: "10px", backgroundColor: "red", color: "white" }}>
+                Void Receipt
+            </button>
+            <button onClick={() => router.push("/employee/pos")} style={{ padding: "10px", marginLeft: "10px" }}>
+                Back to Sale
+            </button>
+        </div>
+    );
 
     return (
-        <div style={{ display: 'flex', height: '100vh' }}>
-            {/* Left Panel: Receipt Details */}
-            <div style={{ flex: 1, padding: '20px', borderRight: '1px solid #ccc', overflowY: 'auto' }}>
-                {error && <div style={{ color: 'red', marginBottom: '10px' }}>{error}</div>}
-                {receiptDetails ? (
-                    <div style={{ border: '1px solid #ccc', padding: '10px' }}>
-                        <h2>Receipt: {receiptDetails.receipt_id}</h2>
-                        <p>Date: {receiptDetails.issue_date}</p>
-                        <p>Branch: {receiptDetails.branch_id}</p>
-                        <h3>Items:</h3>
-                        <ul>
-                            {receiptDetails.items.map((item) => (
-                                <li key={item.prod_id}>
-                                    {item.name_th} - {item.quantity} x {item.price_each} THB
-                                </li>
-                            ))}
-                        </ul>
-                        <button onClick={handleCancelReceipt} style={{ padding: '10px', backgroundColor: 'red', color: 'white', border: 'none', cursor: 'pointer' }}>
-                            Cancel Receipt
-                        </button>
-                    </div>
-                ) : (
-                    <p>Please enter a receipt ID to search.</p>
-                )}
-            </div>
-
-            {/* Right Panel: Input and Keypad */}
-            <div style={{ flex: 1, padding: '20px', overflowY: 'auto' }}>
-                <input
-                    type="text"
-                    placeholder="Enter Receipt ID"
-                    value={receiptId}
-                    onChange={(e) => setReceiptId(e.target.value)}
-                    ref={inputRef}
-                    style={{ padding: '10px', width: '100%', marginBottom: '10px' }}
-                />
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                    {keypadButtons.map((btn, idx) => (
-                        <button
-                            key={idx}
-                            onClick={() => {
-                                if (btn === 'Search') {
-                                    fetchReceiptDetails();
-                                } else {
-                                    setReceiptId((prev) => prev + btn.toString());
-                                }
-                            }}
-                            style={{ padding: '20px', fontSize: '18px' }}
-                        >
-                            {btn}
-                        </button>
-                    ))}
-                    <button onClick={handleReset} style={{ padding: '20px', fontSize: '18px', backgroundColor: 'gray', color: 'white' }}>
-                        Reset
-                    </button>
-                </div>
-            </div>
+        <div style={{ padding: "20px", height: "100vh", overflowY: "auto" }}>
+            {!selectedReceipt ? renderListView() : renderDetailView()}
         </div>
     );
 };
 
-export default VoidReceiptPage;
+export default VoidReceiptListPage;

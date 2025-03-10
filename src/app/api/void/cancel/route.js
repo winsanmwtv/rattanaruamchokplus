@@ -1,70 +1,64 @@
 import { promisePool } from '../../../lib/db';
 
 export async function POST(request) {
-    const { receipt_id } = await request.json();
-
-    if (!receipt_id) {
-        return new Response(
-            JSON.stringify({ error: 'Receipt ID is required' }),
-            { status: 400, headers: { 'Content-Type': 'application/json' } }
-        );
-    }
-
-    const connection = await promisePool.getConnection();
-
     try {
-        // Check if the receipt exists without locking
-        const [receiptRows] = await connection.query(
-            'SELECT receipt_id FROM Receipt WHERE receipt_id = ?',
-            [receipt_id]
-        );
+        const { receipt_id } = await request.json();
 
-        if (receiptRows.length === 0) {
-            await connection.release();
-            return new Response(
-                JSON.stringify({ error: 'Receipt not found' }),
-                { status: 404, headers: { 'Content-Type': 'application/json' } }
-            );
+        if (!receipt_id) {
+            return new Response(JSON.stringify({ error: 'receipt_id is required' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' },
+            });
         }
 
+        const connection = await promisePool.getConnection();
+        await connection.beginTransaction();
+
         // Fetch receipt items
-        const [itemRows] = await connection.query(
+        const [items] = await connection.query(
             'SELECT prod_id, quantity FROM Receipt_Item WHERE receipt_id = ?',
             [receipt_id]
         );
 
-        // Update product stock levels for each item
-        for (const item of itemRows) {
+        if (items.length === 0) {
+            await connection.release();
+            return new Response(JSON.stringify({ error: 'No items found for this receipt' }), {
+                status: 404,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+
+        // Restore stock levels
+        for (const item of items) {
             await connection.query(
                 'UPDATE Product SET back_quantity = back_quantity + ? WHERE barcode = ?',
                 [item.quantity, item.prod_id]
             );
         }
 
-        // Delete receipt items first (as foreign key constraints may require it)
-        await connection.query(
-            'DELETE FROM Receipt_Item WHERE receipt_id = ?',
-            [receipt_id]
-        );
-
-        // Now delete the receipt
+        // Mark receipt as voided
         await connection.query(
             'DELETE FROM Receipt WHERE receipt_id = ?',
             [receipt_id]
         );
 
-        await connection.release();
+        await connection.query(
+            'DELETE FROM Receipt_Item WHERE receipt_id = ?',
+            [receipt_id]
+        );
 
-        return new Response(
-            JSON.stringify({ message: 'Receipt and its items deleted successfully' }),
-            { status: 200, headers: { 'Content-Type': 'application/json' } }
-        );
+        await connection.commit();
+        connection.release();
+
+        return new Response(JSON.stringify({ message: 'Receipt canceled successfully' }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+        });
     } catch (error) {
-        console.error('Error deleting receipt:', error);
-        await connection.release();
-        return new Response(
-            JSON.stringify({ error: 'Internal Server Error' }),
-            { status: 500, headers: { 'Content-Type': 'application/json' } }
-        );
+        console.error('Error canceling receipt:', error);
+        return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+        });
     }
 }

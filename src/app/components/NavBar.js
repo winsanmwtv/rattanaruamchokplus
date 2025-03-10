@@ -2,10 +2,12 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-
-const versioning = 'Dev 1.2.1.3';
+import pjson from "../../../package.json";
 
 const NavBar = () => {
+
+    console.log(pjson.version);
+
     const [user, setUser] = useState(null);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [currentDateTime, setCurrentDateTime] = useState("");
@@ -144,7 +146,7 @@ const NavBar = () => {
             }}
         >
             <div style={{ display: "flex", flexDirection: "column", textAlign: "left" }}>
-                <div>ร้านรัตนารวมโชค | {versioning}</div>
+                <div>ร้านรัตนารวมโชค | {pjson.version}</div>
                 <div style={{ fontSize: "14px", color: "#ededed" }}>{currentDateTime}</div>
             </div>
 
