@@ -292,10 +292,10 @@ export default function EmployeePage() {
                                                 value={editEmployee.role}
                                                 onChange={handleEditChange}
                                             >
-                                                <option value="1">พนักงานหน้าร้าน</option>
-                                                <option value="2">ผู้จัดการร้าน</option>
-                                                <option value="3">พนักงานฝ่าย IT</option>
-                                                <option value="4">เจ้าของร้าน</option>
+                                                <option value="พนักงานหน้าร้าน">พนักงานหน้าร้าน</option>
+                                                <option value="ผู้จัดการร้าน">ผู้จัดการร้าน</option>
+                                                <option value="พนักงานฝ่าย IT">พนักงานฝ่าย IT</option>
+                                                <option value="เจ้าของร้าน">เจ้าของร้าน</option>
                                             </select>
                                         ) : (
                                             emp.role
