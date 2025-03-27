@@ -640,11 +640,8 @@ const MobilePosPage = () => {
                 {[
                     { label: "เช็คราคาสินค้า", path: "/employee/enquiry" },
                     { label: "คืนสินค้า (Void)", path: "/employee/pos/void" },
-                    { label: "พักบิล", action: () => alert("พักบิล") },
                     { label: "ออกจากระบบ", action: () => alert("ออกจากระบบ") },
-                    { label: "เรียกรายการพักบิล", action: () => alert("เรียกรายการพักบิล") },
                     { label: "ยกเลิกบิลนี้", action: () => setItemList([]) },
-                    { label: "สินค้าอื่นๆ", action: () => alert("สินค้าอื่นๆ") },
                 ].map((btn, idx) => (
                     <button
                         key={idx}

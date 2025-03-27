@@ -3,23 +3,18 @@ import { promisePool } from '../../../lib/db';
 export async function POST(request) {
     try {
         const { receipt_id } = await request.json();
-
         if (!receipt_id) {
             return new Response(JSON.stringify({ error: 'receipt_id is required' }), {
                 status: 400,
                 headers: { 'Content-Type': 'application/json' },
             });
         }
-
         const connection = await promisePool.getConnection();
         await connection.beginTransaction();
-
-        // Fetch receipt items
         const [items] = await connection.query(
             'SELECT prod_id, quantity FROM Receipt_Item WHERE receipt_id = ?',
             [receipt_id]
         );
-
         if (items.length === 0) {
             await connection.release();
             return new Response(JSON.stringify({ error: 'No items found for this receipt' }), {
@@ -27,16 +22,12 @@ export async function POST(request) {
                 headers: { 'Content-Type': 'application/json' },
             });
         }
-
-        // Restore stock levels
         for (const item of items) {
             await connection.query(
                 'UPDATE Product SET back_quantity = back_quantity + ? WHERE barcode = ?',
                 [item.quantity, item.prod_id]
             );
         }
-
-        // Mark receipt as voided
         await connection.query(
             'DELETE FROM Receipt WHERE receipt_id = ?',
             [receipt_id]

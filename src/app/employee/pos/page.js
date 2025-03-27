@@ -509,11 +509,8 @@ const PosPage = () => {
     const scanningMenuButtons = [
         { label: "เช็คราคาสินค้า", path: "/employee/enquiry" },
         { label: "คืนสินค้า (Void)", path: "/employee/pos/void" },
-        { label: "พักบิล", action: () => alert("ฟีเจอร์พักบิลยังเขียนไม่เสร็จ") },
         { label: "ออกจากระบบ", action: () => handleLogout() },
-        { label: "เรียกรายการพักบิล", action: () => alert("ฟีเจอร์เรียกพักบิลยังเขียนไม่เสร็จ") },
         { label: "ยกเลิกบิลนี้", action: () => setItemList([]) },
-        { label: "สินค้าอื่นๆ", action: () => alert("ฟีเจอร์สินค้าอื่นๆ ยังเขียนไม่เสร็จ") },
         {
             label: (
                 <div style={{ display: 'flex', alignItems: 'center' }}>

@@ -3,31 +3,24 @@ import { promisePool } from '../../../lib/db';
 export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const receipt_id = searchParams.get('receipt_id');
-
     if (!receipt_id) {
         return new Response(JSON.stringify({ error: 'receipt_id is required' }), {
             status: 400,
             headers: { 'Content-Type': 'application/json' },
         });
     }
-
     try {
-        // Fetch receipt header details
         const [receiptRows] = await promisePool.query(
             'SELECT receipt_id, issue_date, branch_id FROM Receipt WHERE receipt_id = ? LIMIT 1',
             [receipt_id]
         );
-
         if (receiptRows.length === 0) {
             return new Response(JSON.stringify({ error: 'Receipt not found' }), {
                 status: 404,
                 headers: { 'Content-Type': 'application/json' },
             });
         }
-
         const receipt = receiptRows[0];
-
-        // Fetch receipt items and join with Product table to get name_th
         const [itemRows] = await promisePool.query(
             `SELECT ri.prod_id, ri.quantity, ri.price_each, p.name_th
              FROM Receipt_Item ri
@@ -35,9 +28,7 @@ export async function GET(request) {
              WHERE ri.receipt_id = ?`,
             [receipt_id]
         );
-
         receipt.items = itemRows;
-
         return new Response(JSON.stringify(receipt), {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
