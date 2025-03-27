@@ -295,7 +295,6 @@ export default function EmployeePage() {
                                                 <option value="พนักงานหน้าร้าน">พนักงานหน้าร้าน</option>
                                                 <option value="ผู้จัดการร้าน">ผู้จัดการร้าน</option>
                                                 <option value="พนักงานฝ่าย IT">พนักงานฝ่าย IT</option>
-                                                <option value="เจ้าของร้าน">เจ้าของร้าน</option>
                                             </select>
                                         ) : (
                                             emp.role
