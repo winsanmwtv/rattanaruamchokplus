@@ -90,6 +90,10 @@ export async function PUT(req) {
         const data = await req.json();
         // Expect emp_id and any fields to update.
         const { emp_id, password, firstname, lastname, role, tel_no, startwork, birthdate, salary, branch, img_path } = data;
+        let roleList = new Array(4);
+        roleList[0] = "พนักงานหน้าร้าน";
+        roleList[1] = "ผู้จัดการร้าน";
+        roleList[2] = "พนักงานฝ่าย IT";
         let fields = [];
         let values = [];
         if (firstname !== undefined) {
@@ -102,7 +106,7 @@ export async function PUT(req) {
         }
         if (role !== undefined) {
             fields.push('role = ?');
-            values.push(role);
+            values.push(roleList[role-1]);
         }
         if (tel_no !== undefined) {
             fields.push('tel_no = ?');
