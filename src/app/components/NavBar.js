@@ -193,9 +193,7 @@ const NavBar = () => {
                             <button onClick={handleGoHome} style={dropdownButtonStyle}>
                                 กลับสู่หน้าแรก
                             </button>
-                            <button onClick={handleLock} style={dropdownButtonStyle}>
-                                ล็อคการใช้งาน
-                            </button>
+                            
                             <button onClick={handleLogout} style={dropdownButtonStyle}>
                                 ออกจากระบบ
                             </button>
