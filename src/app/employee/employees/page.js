@@ -1,6 +1,30 @@
 'use client';
 import { useState, useEffect } from 'react';
 
+// Helper: Format date for display as "dd MMM yyyy"
+function formatDateDisplay(dateStr) {
+    const date = new Date(dateStr);
+    if (isNaN(date)) return '';
+    const day = date.getDate().toString().padStart(2, '0');
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const month = monthNames[date.getMonth()];
+    const year = date.getFullYear();
+    return `${day} ${month} ${year}`;
+}
+
+// Helper: Format date for DB as "YYYY-MM-DD HH:MM:SS"
+function formatForDB(dateStr) {
+    const date = new Date(dateStr);
+    if (isNaN(date)) return '';
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const seconds = date.getSeconds().toString().padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
 export default function EmployeePage() {
     const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -14,20 +38,8 @@ export default function EmployeePage() {
         birthdate: '',
         salary: '',
     });
-    // Edit mode state
+    // When editing, we store the employee object in editEmployee
     const [editEmployee, setEditEmployee] = useState(null);
-    const [editData, setEditData] = useState({
-        firstname: '',
-        lastname: '',
-        role: '',
-        tel_no: '',
-        startwork: '',
-        birthdate: '',
-        salary: '',
-        branch: '',
-        img_path: '',
-        password: '', // if you want to update password
-    });
 
     useEffect(() => {
         if (!showAddForm) {
@@ -93,32 +105,32 @@ export default function EmployeePage() {
         }
     };
 
+    // When editing, use the employee object (with password cleared)
     const handleEdit = (employee) => {
-        setEditEmployee(employee);
-        setEditData({
-            firstname: employee.firstname,
-            lastname: employee.lastname,
-            role: employee.role,
-            tel_no: employee.tel_no,
-            startwork: employee.startwork,
-            birthdate: employee.birthdate,
-            salary: employee.salary,
-            branch: employee.branch,
-            img_path: employee.img_path,
-            password: '', // leave blank if not updating
-        });
+        setEditEmployee({ ...employee, password: '' });
     };
 
     const handleEditChange = (e) => {
         const { name, value } = e.target;
-        setEditData((prev) => ({ ...prev, [name]: value }));
+        setEditEmployee((prev) => ({ ...prev, [name]: value }));
     };
 
     const handleSave = async (emp_id) => {
+        // Retrieve the original employee record so that startwork and birthdate remain unchanged.
+        const original = employees.find((e) => e.emp_id === emp_id);
         const payload = {
             emp_id,
-            ...editData,
-            salary: parseInt(editData.salary, 10),
+            firstname: editEmployee.firstname,
+            lastname: editEmployee.lastname,
+            role: editEmployee.role,
+            tel_no: editEmployee.tel_no,
+            // Format dates for DB (as timestamp)
+            startwork: formatForDB(original.startwork),
+            birthdate: formatForDB(original.birthdate),
+            salary: parseInt(editEmployee.salary, 10),
+            branch: editEmployee.branch,
+            img_path: editEmployee.img_path,
+            password: editEmployee.password,
         };
         const res = await fetch('/api/employee', {
             method: 'PUT',
@@ -254,7 +266,7 @@ export default function EmployeePage() {
                                             <input
                                                 type="text"
                                                 name="firstname"
-                                                value={editData.firstname}
+                                                value={editEmployee.firstname}
                                                 onChange={handleEditChange}
                                             />
                                         ) : (
@@ -266,7 +278,7 @@ export default function EmployeePage() {
                                             <input
                                                 type="text"
                                                 name="lastname"
-                                                value={editData.lastname}
+                                                value={editEmployee.lastname}
                                                 onChange={handleEditChange}
                                             />
                                         ) : (
@@ -275,7 +287,11 @@ export default function EmployeePage() {
                                     </td>
                                     <td style={{ border: '1px solid #ddd', padding: '8px' }}>
                                         {editEmployee && editEmployee.emp_id === emp.emp_id ? (
-                                            <select name="role" value={editData.role} onChange={handleEditChange}>
+                                            <select
+                                                name="role"
+                                                value={editEmployee.role}
+                                                onChange={handleEditChange}
+                                            >
                                                 <option value="1">พนักงานหน้าร้าน</option>
                                                 <option value="2">ผู้จัดการร้าน</option>
                                                 <option value="3">พนักงานฝ่าย IT</option>
@@ -290,43 +306,26 @@ export default function EmployeePage() {
                                             <input
                                                 type="text"
                                                 name="tel_no"
-                                                value={editData.tel_no}
+                                                value={editEmployee.tel_no}
                                                 onChange={handleEditChange}
                                             />
                                         ) : (
                                             emp.tel_no
                                         )}
                                     </td>
+                                    {/* Display startwork and birthdate in "dd MMM yyyy" format */}
                                     <td style={{ border: '1px solid #ddd', padding: '8px' }}>
-                                        {editEmployee && editEmployee.emp_id === emp.emp_id ? (
-                                            <input
-                                                type="date"
-                                                name="startwork"
-                                                value={editData.startwork}
-                                                onChange={handleEditChange}
-                                            />
-                                        ) : (
-                                            emp.startwork
-                                        )}
+                                        {formatDateDisplay(emp.startwork)}
                                     </td>
                                     <td style={{ border: '1px solid #ddd', padding: '8px' }}>
-                                        {editEmployee && editEmployee.emp_id === emp.emp_id ? (
-                                            <input
-                                                type="date"
-                                                name="birthdate"
-                                                value={editData.birthdate}
-                                                onChange={handleEditChange}
-                                            />
-                                        ) : (
-                                            emp.birthdate
-                                        )}
+                                        {formatDateDisplay(emp.birthdate)}
                                     </td>
                                     <td style={{ border: '1px solid #ddd', padding: '8px' }}>
                                         {editEmployee && editEmployee.emp_id === emp.emp_id ? (
                                             <input
                                                 type="number"
                                                 name="salary"
-                                                value={editData.salary}
+                                                value={editEmployee.salary}
                                                 onChange={handleEditChange}
                                             />
                                         ) : (
@@ -338,7 +337,7 @@ export default function EmployeePage() {
                                             <input
                                                 type="text"
                                                 name="branch"
-                                                value={editData.branch}
+                                                value={editEmployee.branch}
                                                 onChange={handleEditChange}
                                             />
                                         ) : (
@@ -352,22 +351,30 @@ export default function EmployeePage() {
                                                     type="password"
                                                     name="password"
                                                     placeholder="New Password"
-                                                    value={editData.password}
+                                                    value={editEmployee.password}
                                                     onChange={handleEditChange}
                                                     style={{ marginBottom: '5px' }}
                                                 />
                                                 <br />
-                                                <button onClick={() => handleSave(emp.emp_id)} style={{ marginRight: '5px' }}>
+                                                <button
+                                                    onClick={() => handleSave(emp.emp_id)}
+                                                    style={{ marginRight: '5px' }}
+                                                >
                                                     บันทึก
                                                 </button>
                                                 <button onClick={handleCancelEdit}>ยกเลิก</button>
                                             </>
                                         ) : (
                                             <>
-                                                <button onClick={() => handleEdit(emp)} style={{ marginRight: '5px' }}>
+                                                <button
+                                                    onClick={() => handleEdit(emp)}
+                                                    style={{ marginRight: '5px' }}
+                                                >
                                                     แก้ไข
                                                 </button>
-                                                <button onClick={() => handleDelete(emp.emp_id)}>ไล่ออก</button>
+                                                <button onClick={() => handleDelete(emp.emp_id)}>
+                                                    ไล่ออก
+                                                </button>
                                             </>
                                         )}
                                     </td>
