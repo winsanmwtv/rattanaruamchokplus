@@ -199,12 +199,12 @@ const NavBar = () => {
                             <button onClick={handleLogout} style={dropdownButtonStyle}>
                                 ออกจากระบบ
                             </button>
-                            <button onClick={handleOpenShift} style={dropdownButtonStyle}>
-                                เปิดกะเริ่มทำงาน
-                            </button>
-                            <button onClick={handleCloseShift} style={dropdownButtonStyle}>
-                                ปิดกะประจำวัน/จบงาน
-                            </button>
+                            {/*<button onClick={handleOpenShift} style={dropdownButtonStyle}>*/}
+                            {/*    เปิดกะเริ่มทำงาน*/}
+                            {/*</button>*/}
+                            {/*<button onClick={handleCloseShift} style={dropdownButtonStyle}>*/}
+                            {/*    ปิดกะประจำวัน/จบงาน*/}
+                            {/*</button>*/}
                             <button onClick={handleChangePassword} style={dropdownButtonStyle}>
                                 เปลี่ยนรหัสผ่าน
                             </button>

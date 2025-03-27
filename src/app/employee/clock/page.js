@@ -147,9 +147,9 @@ const ClockPage = () => {
                 <button onClick={() => router.push('/employee/clock/logs')} style={buttonStyle}>
                     เช็คข้อมูลย้อนหลัง
                 </button>
-                <button onClick={() => router.push('/employee/report')} style={buttonStyle}>
-                    แจ้งลาป่วย/ลาพักร้อน
-                </button>
+                {/*<button onClick={() => router.push('/employee/report')} style={buttonStyle}>*/}
+                {/*    แจ้งลาป่วย/ลาพักร้อน*/}
+                {/*</button>*/}
             </div>
         </div>
     );

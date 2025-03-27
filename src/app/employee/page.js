@@ -56,12 +56,12 @@ const EmployeePage = () => {
         { label: "ตรวจสอบหมดอายุประจำวัน", path: "/employee/daily-expiry" },
         { label: "รับสินค้าใหม่เข้าคลัง", path: "/employee/receive-stock" },
         { label: "เติมสินค้าหน้าร้าน", path: "/employee/stock-storefront" },
-        { label: "แจ้งลาป่วย/ลาพักร้อน", path: "/employee/report" },
-        { label: "ส่งข้อความหาผู้จัดการร้าน", path: "/employee/report" },
+        // { label: "แจ้งลาป่วย/ลาพักร้อน", path: "/employee/report" },
+        // { label: "ส่งข้อความหาผู้จัดการร้าน", path: "/employee/report" },
     ];
 
     const adminMenus = [
-        { label: "จัดการสินค้า/ทำโปรโมชั่น", path: "/employee/product" },
+        { label: "จัดการสินค้า", path: "/employee/product" },
         { label: "แก้ไขข้อมูลพนักงาน", path: "/employee/employees" },
     ];
 
