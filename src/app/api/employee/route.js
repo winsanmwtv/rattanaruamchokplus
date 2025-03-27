@@ -45,6 +45,10 @@ export async function POST(req) {
         // Expected data from client: firstname, lastname, role, tel_no, birthdate, salary.
         // 'role' is provided as "1", "2", "3", or "4".
         const { firstname, lastname, role, tel_no, birthdate, salary, password } = data;
+        let roleList = new Array(4);
+        roleList[0] = "พนักงานหน้าร้าน";
+        roleList[1] = "ผู้จัดการร้าน";
+        roleList[2] = "พนักงานฝ่าย IT";
         // Auto-generate emp_id.
         const emp_id = await generateUniqueEmpId(role);
         // Default password is the emp_id as string if not provided.
@@ -65,7 +69,7 @@ export async function POST(req) {
             hashedPassword,
             firstname,
             lastname,
-            role,
+            roleList[role-1],
             tel_no,
             startwork,
             birthdate,

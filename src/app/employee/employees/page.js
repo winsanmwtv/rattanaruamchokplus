@@ -189,7 +189,6 @@ export default function EmployeePage() {
                                 <option value="1">พนักงานหน้าร้าน</option>
                                 <option value="2">ผู้จัดการร้าน</option>
                                 <option value="3">พนักงานฝ่าย IT</option>
-                                <option value="4">เจ้าของร้าน</option>
                             </select>
                             <input
                                 type="text"
@@ -292,9 +291,9 @@ export default function EmployeePage() {
                                                 value={editEmployee.role}
                                                 onChange={handleEditChange}
                                             >
-                                                <option value="พนักงานหน้าร้าน">พนักงานหน้าร้าน</option>
-                                                <option value="ผู้จัดการร้าน">ผู้จัดการร้าน</option>
-                                                <option value="พนักงานฝ่าย IT">พนักงานฝ่าย IT</option>
+                                                <option value="1">พนักงานหน้าร้าน</option>
+                                                <option value="2">ผู้จัดการร้าน</option>
+                                                <option value="3">พนักงานฝ่าย IT</option>
                                             </select>
                                         ) : (
                                             emp.role
