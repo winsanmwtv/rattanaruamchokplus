@@ -628,7 +628,7 @@ const MobileReceiveStock = () => {
     const renderCashResult = () => (
         <div style={{ padding: "20px", textAlign: "center" }}>
             <div style={{ fontSize: "1.2rem", fontWeight: "bold", marginBottom: "10px" }}>
-                ตรวจสอบสินค้าหมดอายุ
+                รับสินค้าเข้าร้าน
             </div>
             <div style={{ marginBottom: "20px" }}>เงินทอน: {changeDue}</div>
             <div>
@@ -650,7 +650,7 @@ const MobileReceiveStock = () => {
     const renderThaiQRMode = () => (
         <div style={{ padding: "20px", textAlign: "center" }}>
             <div style={{ fontSize: "1.2rem", fontWeight: "bold", marginBottom: "10px" }}>
-                ตรวจสอบสินค้าหมดอายุ
+                รับสินค้าเข้าร้าน
             </div>
             <div style={{ marginBottom: "20px" }}>ยอดรวม: {totalPrice.toFixed(2)}</div>
             <div style={{ marginBottom: "20px" }}>
@@ -686,7 +686,7 @@ const MobileReceiveStock = () => {
             <div style={{ fontSize: "1.2rem", fontWeight: "bold", marginBottom: "20px" }}>
                 บันทึกการทำรายการแล้ว
             </div>
-            <div style={{ marginBottom: "20px" }}>ตรวจสอบสินค้าหมดอายุ</div>
+            <div style={{ marginBottom: "20px" }}>รับสินค้าเข้าร้าน</div>
             <div>
                 <button
                     onClick={handleRefresh}

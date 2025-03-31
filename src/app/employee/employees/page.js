@@ -95,7 +95,7 @@ export default function EmployeePage() {
     };
 
     const handleDelete = async (emp_id) => {
-        if (!confirm('คุณมั่นใจที่จะไล่พนักงานคนนี้ออกหรือไม่?')) return;
+        if (!confirm('คุณมั่นใจที่จะลบพนักงานคนนี้ออกหรือไม่?')) return;
         const res = await fetch(`/api/employee?emp_id=${emp_id}`, { method: 'DELETE' });
         if (res.ok) {
             fetchEmployees();
@@ -371,7 +371,7 @@ export default function EmployeePage() {
                                                     แก้ไข
                                                 </button>
                                                 <button onClick={() => handleDelete(emp.emp_id)}>
-                                                    ไล่ออก
+                                                    ลบพนักงาน
                                                 </button>
                                             </>
                                         )}
